@@ -1,0 +1,244 @@
+import SwiftUI
+import SwiftData
+
+struct HomeView: View {
+    @Environment(\.modelContext) private var context
+
+    @Query(sort: \Workout.createdAt, order: .reverse) private var workouts: [Workout]
+    @Query(filter: #Predicate<Split> { $0.isActive == true }) private var activeSplits: [Split]
+    @Query(sort: \WorkoutSession.startedAt, order: .reverse) private var sessions: [WorkoutSession]
+
+    @State private var pendingSession: WorkoutSession?
+    @State private var showStartConfirm: Workout?
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        header
+
+                        if let split = activeSplits.first, let next = split.nextWorkout {
+                            currentSplitCard(split: split, next: next)
+                        }
+
+                        quickStartSection
+
+                        manageSection
+
+                        if let lastSession = sessions.first {
+                            recentSection(session: lastSession)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 60)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(item: $pendingSession) { session in
+                ActiveWorkoutView(session: session)
+            }
+            .confirmationDialog(
+                "Start workout",
+                isPresented: Binding(get: { showStartConfirm != nil }, set: { if !$0 { showStartConfirm = nil } }),
+                presenting: showStartConfirm
+            ) { workout in
+                Button("Start \(workout.name)") { start(workout: workout, split: activeSplits.first) }
+                Button("Cancel", role: .cancel) {}
+            }
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(greetingDate())
+                .font(.caption)
+                .tracking(1.2)
+                .foregroundStyle(Theme.textMuted)
+            Text("Workout")
+                .font(.displayLg)
+                .foregroundStyle(Theme.textPrimary)
+        }
+        .padding(.top, 12)
+    }
+
+    private func currentSplitCard(split: Split, next: Workout) -> some View {
+        Card(elevated: true) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text(split.name.uppercased())
+                        .font(.caption)
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.textMuted)
+                    Spacer()
+                    Text("Day \(split.currentIndex + 1) / \(split.orderedWorkouts.count)")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textMuted)
+                }
+
+                Text("Up next: \(next.name)")
+                    .font(.titleLg)
+                    .foregroundStyle(Theme.textPrimary)
+
+                Text("\(next.orderedExercises.count) exercise\(next.orderedExercises.count == 1 ? "" : "s")")
+                    .font(.bodyMd)
+                    .foregroundStyle(Theme.textSecondary)
+
+                Button("Start workout") { showStartConfirm = next }
+                    .primaryButton()
+                    .padding(.top, 4)
+            }
+        }
+    }
+
+    private var quickStartSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Quick start", trailing: AnyView(
+                NavigationLink {
+                    WorkoutListView()
+                } label: {
+                    Text("All")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            ))
+
+            if workouts.isEmpty {
+                Card {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("No workouts yet")
+                            .font(.title)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("Create your first workout to get started.")
+                            .font(.bodyMd)
+                            .foregroundStyle(Theme.textSecondary)
+                        NavigationLink {
+                            WorkoutEditorView()
+                        } label: { Text("Create workout") }
+                            .primaryButton()
+                            .padding(.top, 6)
+                    }
+                }
+            } else {
+                ForEach(workouts.prefix(4)) { workout in
+                    workoutRow(workout)
+                }
+            }
+        }
+    }
+
+    private func workoutRow(_ workout: Workout) -> some View {
+        Button { showStartConfirm = workout } label: {
+            Card {
+                HStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(workout.name)
+                            .font(.title)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("\(workout.orderedExercises.count) exercise\(workout.orderedExercises.count == 1 ? "" : "s")")
+                            .font(.bodyMd)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.accentOnAccent)
+                        .frame(width: 36, height: 36)
+                        .background(Theme.accent)
+                        .clipShape(Circle())
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var manageSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Manage")
+            HStack(spacing: 12) {
+                NavigationLink { ExerciseListView() } label: {
+                    manageTile(icon: "dumbbell.fill", title: "Exercises")
+                }
+                NavigationLink { WorkoutListView() } label: {
+                    manageTile(icon: "list.bullet.rectangle.fill", title: "Workouts")
+                }
+            }
+            HStack(spacing: 12) {
+                NavigationLink { SplitListView() } label: {
+                    manageTile(icon: "calendar", title: "Splits")
+                }
+                NavigationLink { HistoryView() } label: {
+                    manageTile(icon: "clock.arrow.circlepath", title: "History")
+                }
+            }
+        }
+    }
+
+    private func manageTile(icon: String, title: String) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Theme.textPrimary)
+                Text(title)
+                    .font(.bodyBold)
+                    .foregroundStyle(Theme.textPrimary)
+            }
+            .frame(height: 70, alignment: .topLeading)
+        }
+    }
+
+    private func recentSection(session: WorkoutSession) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Most recent", trailing: AnyView(
+                NavigationLink {
+                    HistoryView()
+                } label: {
+                    Text("All")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            ))
+            NavigationLink {
+                SessionDetailView(session: session)
+            } label: {
+                Card {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(session.workoutName)
+                            .font(.title)
+                            .foregroundStyle(Theme.textPrimary)
+                        HStack(spacing: 12) {
+                            Text(Format.shortDate(session.startedAt))
+                            Text("•")
+                            Text(Format.elapsed(session.elapsed))
+                        }
+                        .font(.caption)
+                        .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func greetingDate() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE, MMM d"
+        return f.string(from: Date()).uppercased()
+    }
+
+    private func start(workout: Workout, split: Split?) {
+        let session = WorkoutSession(workout: workout, split: split)
+        context.insert(session)
+        try? context.save()
+        pendingSession = session
+    }
+}
+
+#Preview {
+    HomeView()
+        .modelContainer(for: [Exercise.self, Workout.self, Split.self, WorkoutSession.self, ExerciseLog.self, SetLog.self], inMemory: true)
+}

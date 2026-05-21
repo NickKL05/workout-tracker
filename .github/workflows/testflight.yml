@@ -1,0 +1,91 @@
+name: TestFlight Build
+
+on:
+  workflow_dispatch:        # lets you trigger manually from the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - 'WorkoutTracker/**'
+      - 'project.yml'
+      - 'ExportOptions.plist'
+      - '.github/workflows/testflight.yml'
+
+env:
+  XCODE_PROJECT: WorkoutTracker.xcodeproj
+  SCHEME: WorkoutTracker
+  ARCHIVE_PATH: build/WorkoutTracker.xcarchive
+  EXPORT_PATH: build/export
+  BUNDLE_ID: com.workouttracker.app    # change here if you change project.yml
+
+jobs:
+  build-and-upload:
+    runs-on: macos-14
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Import code-signing certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DIST_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.DIST_CERTIFICATE_PASSWORD }}
+
+      - name: Download App Store provisioning profile
+        uses: apple-actions/download-provisioning-profiles@v3
+        with:
+          bundle-id: ${{ env.BUNDLE_ID }}
+          profile-type: IOS_APP_STORE
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+
+      - name: Inject team ID into ExportOptions.plist
+        run: |
+          sed -i '' "s/__TEAM_ID__/${{ secrets.APPLE_TEAM_ID }}/g" ExportOptions.plist
+          cat ExportOptions.plist
+
+      - name: Build archive
+        run: |
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -allowProvisioningUpdates \
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
+            PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            archive
+
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Locate IPA
+        id: ipa
+        run: |
+          IPA_FILE=$(find "$EXPORT_PATH" -name "*.ipa" | head -n1)
+          echo "Path: $IPA_FILE"
+          echo "ipa_path=$IPA_FILE" >> $GITHUB_OUTPUT
+
+      - name: Upload to TestFlight
+        uses: apple-actions/upload-testflight-build@v1
+        with:
+          app-path: ${{ steps.ipa.outputs.ipa_path }}
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
