@@ -13,17 +13,7 @@ A dark-themed, modern iOS workout tracking app. SwiftUI + SwiftData. iOS 17+.
 - See **last session's stats** for each exercise while logging
 - Full **history** of past sessions with per-exercise detail
 
-## TestFlight from Windows (recommended)
-
-See **[SETUP.md](SETUP.md)** for a step-by-step guide. The short version:
-
-1. One-time: register your bundle ID + app in App Store Connect, generate a distribution cert with OpenSSL (Windows), and add six secrets to your GitHub repo.
-2. `git push` → GitHub Actions builds on a macOS runner, signs, and uploads to TestFlight.
-3. Install via TestFlight on your iPhone. Re-installs whenever you push.
-
-No Mac needed — the entire workflow runs from Windows + browser.
-
-## Local building (only if you have a Mac)
+## Building
 
 This project is iOS-only — you need macOS + Xcode 15+ to build it. Source was authored on Windows, so the `.xcodeproj` is not committed. Generate it with [XcodeGen](https://github.com/yonaskolb/XcodeGen):
 
