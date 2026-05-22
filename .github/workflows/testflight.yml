@@ -38,7 +38,7 @@ jobs:
 
       - name: Generate app icon
         run: |
-          python3 -m pip install --quiet --upgrade Pillow
+          python3 -m pip install --quiet --upgrade --break-system-packages --user Pillow
           python3 scripts/generate-icon.py
           ls -l WorkoutTracker/Assets.xcassets/AppIcon.appiconset/
 
