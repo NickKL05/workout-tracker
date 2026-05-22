@@ -46,6 +46,7 @@ jobs:
           p12-password: ${{ secrets.DIST_CERTIFICATE_PASSWORD }}
 
       - name: Download App Store provisioning profile
+        id: profile
         uses: apple-actions/download-provisioning-profiles@v3
         with:
           bundle-id: ${{ env.BUNDLE_ID }}
@@ -54,9 +55,22 @@ jobs:
           api-key-id: ${{ secrets.APPSTORE_KEY_ID }}
           api-private-key: ${{ secrets.APPSTORE_PRIVATE_KEY }}
 
-      - name: Inject team ID into ExportOptions.plist
+      - name: Resolve provisioning profile name
+        id: profile_name
+        run: |
+          # The download action installs profile(s) into ~/Library/MobileDevice/Provisioning Profiles
+          # Pick the most recently installed one and extract its Name attribute.
+          PROFILE_FILE=$(ls -t ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -n1)
+          PROFILE_NAME=$(security cms -D -i "$PROFILE_FILE" \
+            | /usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin)
+          echo "Profile name: $PROFILE_NAME"
+          echo "profile_name=$PROFILE_NAME" >> $GITHUB_OUTPUT
+
+      - name: Inject team ID + bundle ID + profile name into ExportOptions.plist
         run: |
           sed -i '' "s/__TEAM_ID__/${{ secrets.APPLE_TEAM_ID }}/g" ExportOptions.plist
+          sed -i '' "s|__BUNDLE_ID__|${{ env.BUNDLE_ID }}|g" ExportOptions.plist
+          sed -i '' "s|__PROFILE_NAME__|${{ steps.profile_name.outputs.profile_name }}|g" ExportOptions.plist
           cat ExportOptions.plist
 
       - name: Build archive
@@ -71,6 +85,9 @@ jobs:
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             PRODUCT_BUNDLE_IDENTIFIER=${{ env.BUNDLE_ID }} \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ steps.profile_name.outputs.profile_name }}" \
             archive
 
       - name: Export IPA
