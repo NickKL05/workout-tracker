@@ -4,6 +4,8 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>Workout</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>UIUserInterfaceStyle</key>
     <string>Dark</string>
     <key>UISupportedInterfaceOrientations</key>
