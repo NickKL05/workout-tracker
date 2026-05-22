@@ -58,11 +58,44 @@ jobs:
       - name: Resolve provisioning profile name
         id: profile_name
         run: |
-          # The download action installs profile(s) into ~/Library/MobileDevice/Provisioning Profiles
-          # Pick the most recently installed one and extract its Name attribute.
-          PROFILE_FILE=$(ls -t ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision | head -n1)
-          PROFILE_NAME=$(security cms -D -i "$PROFILE_FILE" \
-            | /usr/libexec/PlistBuddy -c "Print :Name" /dev/stdin)
+          set -e
+          # Xcode 16+ moved profiles. Check both locations.
+          DIRS=(
+            "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+            "$HOME/Library/MobileDevice/Provisioning Profiles"
+          )
+          PROFILE_FILE=""
+          for d in "${DIRS[@]}"; do
+            echo "Checking: $d"
+            if [ -d "$d" ]; then
+              ls -la "$d" || true
+              CANDIDATE=$(ls -t "$d"/*.mobileprovision 2>/dev/null | head -n1 || true)
+              if [ -n "$CANDIDATE" ]; then
+                PROFILE_FILE="$CANDIDATE"
+                break
+              fi
+            else
+              echo "  (does not exist)"
+            fi
+          done
+
+          if [ -z "$PROFILE_FILE" ]; then
+            echo "No .mobileprovision files found in any known location." >&2
+            exit 1
+          fi
+          echo "Using profile: $PROFILE_FILE"
+
+          # Extract the plist payload. Try security cms first; fall back to openssl.
+          TMP_PLIST=$(mktemp)
+          if ! security cms -D -i "$PROFILE_FILE" > "$TMP_PLIST" 2>/dev/null || [ ! -s "$TMP_PLIST" ]; then
+            echo "security cms produced no output, falling back to openssl"
+            openssl smime -inform der -verify -noverify -in "$PROFILE_FILE" > "$TMP_PLIST" 2>/dev/null
+          fi
+          if [ ! -s "$TMP_PLIST" ]; then
+            echo "Failed to decode profile $PROFILE_FILE" >&2
+            exit 1
+          fi
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" "$TMP_PLIST")
           echo "Profile name: $PROFILE_NAME"
           echo "profile_name=$PROFILE_NAME" >> $GITHUB_OUTPUT
 
