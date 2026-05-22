@@ -27,7 +27,7 @@ targets:
         CFBundleDisplayName: Workout
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.workouttracker.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.nickkl.workouttracker
         TARGETED_DEVICE_FAMILY: "1"
         ENABLE_PREVIEWS: YES
         SWIFT_EMIT_LOC_STRINGS: YES

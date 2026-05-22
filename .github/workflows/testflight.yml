@@ -15,7 +15,7 @@ env:
   SCHEME: WorkoutTracker
   ARCHIVE_PATH: build/WorkoutTracker.xcarchive
   EXPORT_PATH: build/export
-  BUNDLE_ID: com.workouttracker.app    # change here if you change project.yml
+  BUNDLE_ID: com.nickkl.workouttracker    # change here if you change project.yml
 
 jobs:
   build-and-upload:
