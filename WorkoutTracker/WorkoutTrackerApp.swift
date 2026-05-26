@@ -19,6 +19,7 @@ struct WorkoutTrackerApp: App {
         } catch {
             fatalError("Failed to initialize SwiftData container: \(error)")
         }
+        ExerciseSeeder.seedIfNeeded(context: container.mainContext)
     }
 
     var body: some Scene {

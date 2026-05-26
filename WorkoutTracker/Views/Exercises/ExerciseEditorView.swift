@@ -10,6 +10,8 @@ struct ExerciseEditorView: View {
     @State private var name: String = ""
     @State private var type: ExerciseType = .weightReps
     @State private var isUnilateral: Bool = false
+    @State private var muscleGroup: MuscleGroup = .other
+    @State private var equipment: Equipment = .other
     @State private var goalSets: Int = 3
     @State private var goalReps: Int = 8
     @State private var goalDurationSeconds: Int = 30
@@ -35,6 +37,7 @@ struct ExerciseEditorView: View {
                     }
 
                     typeSection
+                    categorySection
                     goalsSection
                     overloadSection
 
@@ -111,6 +114,41 @@ struct ExerciseEditorView: View {
         }
     }
 
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Category")
+            Card {
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("Muscle group")
+                            .font(.bodyMd)
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        Picker("", selection: $muscleGroup) {
+                            ForEach(MuscleGroup.displayOrder) { g in
+                                Text(g.displayName).tag(g)
+                            }
+                        }
+                        .tint(Theme.textPrimary)
+                    }
+                    Divider().background(Theme.stroke)
+                    HStack {
+                        Text("Equipment")
+                            .font(.bodyMd)
+                            .foregroundStyle(Theme.textPrimary)
+                        Spacer()
+                        Picker("", selection: $equipment) {
+                            ForEach(Equipment.allCases) { e in
+                                Text(e.displayName).tag(e)
+                            }
+                        }
+                        .tint(Theme.textPrimary)
+                    }
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -158,6 +196,8 @@ struct ExerciseEditorView: View {
         name = ex.name
         type = ex.type
         isUnilateral = ex.isUnilateral
+        muscleGroup = ex.muscleGroup
+        equipment = ex.equipment
         goalSets = ex.goalSets
         goalReps = ex.goalReps
         goalDurationSeconds = ex.goalDurationSeconds
@@ -175,6 +215,8 @@ struct ExerciseEditorView: View {
             ex.name = trimmed
             ex.type = type
             ex.isUnilateral = (type == .weightReps) ? isUnilateral : false
+            ex.muscleGroup = muscleGroup
+            ex.equipment = equipment
             ex.goalSets = goalSets
             ex.goalReps = goalReps
             ex.goalDurationSeconds = goalDurationSeconds
@@ -188,6 +230,8 @@ struct ExerciseEditorView: View {
                 name: trimmed,
                 type: type,
                 isUnilateral: (type == .weightReps) ? isUnilateral : false,
+                muscleGroup: muscleGroup,
+                equipment: equipment,
                 goalSets: goalSets,
                 goalReps: goalReps,
                 goalDurationSeconds: goalDurationSeconds,

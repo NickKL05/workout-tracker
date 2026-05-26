@@ -68,6 +68,23 @@ struct ActiveWorkoutView: View {
                 Text(session.workoutName)
                     .font(.bodyMd)
                     .foregroundStyle(Theme.textSecondary)
+
+                if let rest = restElapsed {
+                    Divider().background(Theme.stroke).padding(.vertical, 4)
+                    HStack(spacing: 8) {
+                        Image(systemName: "timer")
+                            .font(.caption)
+                            .foregroundStyle(Theme.accent)
+                        Text("TIME FROM LAST SET")
+                            .font(.caption)
+                            .tracking(1.2)
+                            .foregroundStyle(Theme.textMuted)
+                        Spacer()
+                        Text(Format.elapsed(rest))
+                            .font(.mono)
+                            .foregroundStyle(Theme.textPrimary)
+                    }
+                }
             }
             .frame(maxWidth: .infinity)
         }
@@ -76,6 +93,21 @@ struct ActiveWorkoutView: View {
     private var elapsed: TimeInterval {
         if let end = session.endedAt { return end.timeIntervalSince(session.startedAt) }
         return now.timeIntervalSince(session.startedAt)
+    }
+
+    /// Date of the most recent completed set in this session (nil if none yet).
+    private var lastCompletedAt: Date? {
+        session.exerciseLogs
+            .flatMap(\.sets)
+            .filter(\.completed)
+            .map(\.loggedAt)
+            .max()
+    }
+
+    /// Seconds since the last completed set. Nil until the first set is checked off.
+    private var restElapsed: TimeInterval? {
+        guard !session.isFinished, let last = lastCompletedAt else { return nil }
+        return max(0, now.timeIntervalSince(last))
     }
 
     private var exercisesList: some View {

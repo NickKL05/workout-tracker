@@ -8,6 +8,10 @@ final class Exercise {
     var typeRaw: String = ExerciseType.weightReps.rawValue
     var isUnilateral: Bool = false
 
+    // Categorization (for browse / filter / recommendations).
+    var muscleGroupRaw: String = MuscleGroup.other.rawValue
+    var equipmentRaw: String = Equipment.other.rawValue
+
     // Goals
     var goalSets: Int = 3
     var goalReps: Int = 8
@@ -26,6 +30,8 @@ final class Exercise {
         name: String,
         type: ExerciseType = .weightReps,
         isUnilateral: Bool = false,
+        muscleGroup: MuscleGroup = .other,
+        equipment: Equipment = .other,
         goalSets: Int = 3,
         goalReps: Int = 8,
         goalDurationSeconds: Int = 30,
@@ -39,6 +45,8 @@ final class Exercise {
         self.name = name
         self.typeRaw = type.rawValue
         self.isUnilateral = isUnilateral
+        self.muscleGroupRaw = muscleGroup.rawValue
+        self.equipmentRaw = equipment.rawValue
         self.goalSets = goalSets
         self.goalReps = goalReps
         self.goalDurationSeconds = goalDurationSeconds
@@ -53,5 +61,15 @@ final class Exercise {
     var type: ExerciseType {
         get { ExerciseType(rawValue: typeRaw) ?? .weightReps }
         set { typeRaw = newValue.rawValue }
+    }
+
+    var muscleGroup: MuscleGroup {
+        get { MuscleGroup(rawValue: muscleGroupRaw) ?? .other }
+        set { muscleGroupRaw = newValue.rawValue }
+    }
+
+    var equipment: Equipment {
+        get { Equipment(rawValue: equipmentRaw) ?? .other }
+        set { equipmentRaw = newValue.rawValue }
     }
 }
