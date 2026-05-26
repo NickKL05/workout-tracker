@@ -45,6 +45,12 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Dump generated Info.plist (debug)
+        run: |
+          echo "=== WorkoutTracker/Info.plist content ==="
+          cat WorkoutTracker/Info.plist
+          echo "=== end ==="
+
       - name: Import code-signing certificate
         uses: apple-actions/import-codesign-certs@v3
         with:
