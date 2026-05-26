@@ -25,7 +25,7 @@ targets:
         CFBundleIconName: AppIcon
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        CFBundleDisplayName: Workout
+        CFBundleDisplayName: SplitMax
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nickkl.workouttracker
