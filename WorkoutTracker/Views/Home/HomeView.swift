@@ -18,15 +18,8 @@ struct HomeView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         header
-
-                        if let split = activeSplits.first, let next = split.nextWorkout {
-                            currentSplitCard(split: split, next: next)
-                        }
-
                         quickStartSection
-
                         manageSection
-
                         if let lastSession = sessions.first {
                             recentSection(session: lastSession)
                         }
@@ -65,34 +58,7 @@ struct HomeView: View {
         .padding(.top, 12)
     }
 
-    private func currentSplitCard(split: Split, next: Workout) -> some View {
-        Card(elevated: true) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text(split.name.uppercased())
-                        .font(.caption)
-                        .tracking(1.2)
-                        .foregroundStyle(Theme.textMuted)
-                    Spacer()
-                    Text("Day \(split.currentIndex + 1) / \(split.orderedWorkouts.count)")
-                        .font(.caption)
-                        .foregroundStyle(Theme.textMuted)
-                }
-
-                Text("Up next: \(next.name)")
-                    .font(.titleLg)
-                    .foregroundStyle(Theme.textPrimary)
-
-                Text("\(next.orderedExercises.count) exercise\(next.orderedExercises.count == 1 ? "" : "s")")
-                    .font(.bodyMd)
-                    .foregroundStyle(Theme.textSecondary)
-
-                Button("Start workout") { showStartConfirm = next }
-                    .primaryButton()
-                    .padding(.top, 4)
-            }
-        }
-    }
+    // MARK: - Quick start
 
     private var quickStartSection: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -107,25 +73,108 @@ struct HomeView: View {
             ))
 
             if workouts.isEmpty {
-                Card {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("No workouts yet")
-                            .font(.title)
-                            .foregroundStyle(Theme.textPrimary)
-                        Text("Create your first workout to get started.")
-                            .font(.bodyMd)
-                            .foregroundStyle(Theme.textSecondary)
-                        NavigationLink {
-                            WorkoutEditorView()
-                        } label: { Text("Create workout") }
-                            .primaryButton()
-                            .padding(.top, 6)
-                    }
-                }
+                emptyQuickStartCard
             } else {
-                ForEach(workouts.prefix(4)) { workout in
-                    workoutRow(workout)
+                if let split = activeSplits.first {
+                    splitHeroCard(split: split)
                 }
+                otherWorkoutsList(exclude: activeSplits.first?.nextWorkout)
+            }
+        }
+    }
+
+    private var emptyQuickStartCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("No workouts yet")
+                    .font(.title)
+                    .foregroundStyle(Theme.textPrimary)
+                Text("Create your first workout to get started.")
+                    .font(.bodyMd)
+                    .foregroundStyle(Theme.textSecondary)
+                NavigationLink {
+                    WorkoutEditorView()
+                } label: { Text("Create workout") }
+                    .primaryButton()
+                    .padding(.top, 6)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func splitHeroCard(split: Split) -> some View {
+        if let next = split.nextWorkout {
+            Card(elevated: true) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text(heroLabel(for: split).uppercased())
+                            .font(.caption)
+                            .tracking(1.2)
+                            .foregroundStyle(Theme.textMuted)
+                        Spacer()
+                        Text(heroSubLabel(for: split))
+                            .font(.caption)
+                            .foregroundStyle(Theme.textMuted)
+                    }
+                    Text(next.name)
+                        .font(.titleLg)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("\(next.orderedExercises.count) exercise\(next.orderedExercises.count == 1 ? "" : "s") • from \(split.name)")
+                        .font(.bodyMd)
+                        .foregroundStyle(Theme.textSecondary)
+                    Button("Start workout") { showStartConfirm = next }
+                        .primaryButton()
+                        .padding(.top, 4)
+                }
+            }
+        } else if split.scheduleMode == .scheduled {
+            // Scheduled mode with no workout for today = rest day.
+            Card(elevated: true) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("REST DAY")
+                        .font(.caption)
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.textMuted)
+                    Text("No workout scheduled today")
+                        .font(.titleLg)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("from \(split.name)")
+                        .font(.bodyMd)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            }
+        }
+    }
+
+    private func heroLabel(for split: Split) -> String {
+        switch split.scheduleMode {
+        case .asynchronous: return "Up next"
+        case .scheduled:    return "Today"
+        }
+    }
+
+    private func heroSubLabel(for split: Split) -> String {
+        switch split.scheduleMode {
+        case .asynchronous:
+            return "Day \(split.currentIndex + 1) / \(split.orderedWorkouts.count)"
+        case .scheduled:
+            return Weekday.today.shortName
+        }
+    }
+
+    private func otherWorkoutsList(exclude: Workout?) -> some View {
+        let excludeID = exclude?.uuid
+        let others = workouts.filter { excludeID == nil || $0.uuid != excludeID }.prefix(4)
+        return VStack(alignment: .leading, spacing: 10) {
+            if exclude != nil && !others.isEmpty {
+                Text("OTHER WORKOUTS")
+                    .font(.caption)
+                    .tracking(1.2)
+                    .foregroundStyle(Theme.textMuted)
+                    .padding(.top, 6)
+            }
+            ForEach(Array(others)) { workout in
+                workoutRow(workout)
             }
         }
     }
@@ -154,6 +203,8 @@ struct HomeView: View {
         }
         .buttonStyle(.plain)
     }
+
+    // MARK: - Manage / recent
 
     private var manageSection: some View {
         VStack(alignment: .leading, spacing: 12) {

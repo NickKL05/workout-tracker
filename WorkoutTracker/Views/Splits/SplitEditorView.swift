@@ -11,6 +11,9 @@ struct SplitEditorView: View {
     @State private var selected: [Workout] = []
     @State private var currentIndex: Int = 0
     @State private var isActive: Bool = false
+    @State private var scheduleMode: SplitScheduleMode = .asynchronous
+    /// weekday.rawValue → workout UUID string ("" = rest)
+    @State private var weeklyAssignments: [String] = Array(repeating: "", count: 7)
     @State private var showPicker = false
     @State private var showDeleteConfirm = false
 
@@ -30,8 +33,14 @@ struct SplitEditorView: View {
                     }
 
                     activeToggle
+                    modeSection
                     workoutsSection
-                    positionSection
+
+                    if scheduleMode == .asynchronous {
+                        positionSection
+                    } else {
+                        weeklyScheduleSection
+                    }
 
                     Button { save() } label: {
                         Text(isNew ? "Create split" : "Save changes")
@@ -83,7 +92,7 @@ struct SplitEditorView: View {
                 Text("Active split")
                     .font(.bodyMd)
                     .foregroundStyle(Theme.textPrimary)
-                Text("Shows on the home screen and advances after each workout.")
+                Text("Shows on the home screen as your next workout.")
                     .font(.caption)
                     .foregroundStyle(Theme.textSecondary)
             }
@@ -95,10 +104,27 @@ struct SplitEditorView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
     }
 
+    private var modeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Mode")
+            Picker("", selection: $scheduleMode) {
+                ForEach(SplitScheduleMode.allCases) { m in
+                    Text(m.shortLabel).tag(m)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            Text(scheduleMode.explainer)
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
+                .padding(.horizontal, 4)
+        }
+    }
+
     private var workoutsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(
-                title: "Workout order",
+                title: scheduleMode == .asynchronous ? "Workout order" : "Workouts in this split",
                 trailing: AnyView(
                     Button { showPicker = true } label: {
                         Label("Add", systemImage: "plus")
@@ -109,7 +135,9 @@ struct SplitEditorView: View {
             )
             if selected.isEmpty {
                 Card {
-                    Text("Add workouts to define the rotation.")
+                    Text(scheduleMode == .asynchronous
+                         ? "Add workouts to define the rotation."
+                         : "Add workouts you can assign to days below.")
                         .font(.bodyMd)
                         .foregroundStyle(Theme.textSecondary)
                 }
@@ -128,7 +156,7 @@ struct SplitEditorView: View {
             HStack(spacing: 12) {
                 Text("\(idx + 1)")
                     .font(.mono)
-                    .foregroundStyle(idx == currentIndex ? Theme.accent : Theme.textMuted)
+                    .foregroundStyle(scheduleMode == .asynchronous && idx == currentIndex ? Theme.accent : Theme.textMuted)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(w.name)
@@ -140,15 +168,21 @@ struct SplitEditorView: View {
                 }
                 Spacer()
                 HStack(spacing: 4) {
-                    Button { move(idx, by: -1) } label: { Image(systemName: "chevron.up") }
-                        .frame(width: 32, height: 32)
-                        .disabled(idx == 0)
-                    Button { move(idx, by: 1) } label: { Image(systemName: "chevron.down") }
-                        .frame(width: 32, height: 32)
-                        .disabled(idx == selected.count - 1)
+                    if scheduleMode == .asynchronous {
+                        Button { move(idx, by: -1) } label: { Image(systemName: "chevron.up") }
+                            .frame(width: 32, height: 32)
+                            .disabled(idx == 0)
+                        Button { move(idx, by: 1) } label: { Image(systemName: "chevron.down") }
+                            .frame(width: 32, height: 32)
+                            .disabled(idx == selected.count - 1)
+                    }
                     Button(role: .destructive) {
+                        let removed = selected[idx]
                         selected.remove(at: idx)
                         if currentIndex >= selected.count { currentIndex = max(0, selected.count - 1) }
+                        // Also clear any weekday assignments pointing at the removed workout.
+                        let removedID = removed.uuid.uuidString
+                        weeklyAssignments = weeklyAssignments.map { $0 == removedID ? "" : $0 }
                     } label: { Image(systemName: "xmark") }
                         .frame(width: 32, height: 32)
                         .foregroundStyle(Theme.textSecondary)
@@ -178,6 +212,77 @@ struct SplitEditorView: View {
         }
     }
 
+    @ViewBuilder
+    private var weeklyScheduleSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Weekly schedule")
+            if selected.isEmpty {
+                Card {
+                    Text("Add workouts above to assign them to days.")
+                        .font(.bodyMd)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            } else {
+                Card {
+                    VStack(spacing: 12) {
+                        ForEach(Weekday.displayOrder) { day in
+                            weekdayRow(day)
+                            if day != Weekday.displayOrder.last {
+                                Divider().background(Theme.stroke)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func weekdayRow(_ day: Weekday) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(day.shortName)
+                    .font(.bodyBold)
+                    .foregroundStyle(Theme.textPrimary)
+                if day == Weekday.today {
+                    Text("TODAY")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1.2)
+                        .foregroundStyle(Theme.accent)
+                }
+            }
+            .frame(width: 48, alignment: .leading)
+            Spacer()
+            Picker("", selection: bindingFor(day)) {
+                Text("Rest").tag("")
+                ForEach(selected) { w in
+                    Text(w.name).tag(w.uuid.uuidString)
+                }
+            }
+            .tint(Theme.textPrimary)
+        }
+    }
+
+    private func bindingFor(_ day: Weekday) -> Binding<String> {
+        Binding(
+            get: {
+                guard day.rawValue < weeklyAssignments.count else { return "" }
+                let val = weeklyAssignments[day.rawValue]
+                // If the assignment references a workout no longer in `selected`, treat as Rest.
+                if val.isEmpty { return "" }
+                let valid = selected.contains { $0.uuid.uuidString == val }
+                return valid ? val : ""
+            },
+            set: { newValue in
+                ensureWeeklyArrayLength()
+                weeklyAssignments[day.rawValue] = newValue
+            }
+        )
+    }
+
+    private func ensureWeeklyArrayLength() {
+        while weeklyAssignments.count < 7 { weeklyAssignments.append("") }
+    }
+
     private func move(_ idx: Int, by delta: Int) {
         let new = idx + delta
         guard new >= 0, new < selected.count else { return }
@@ -187,33 +292,49 @@ struct SplitEditorView: View {
     }
 
     private func loadIfEditing() {
-        guard let s = split else { return }
+        guard let s = split else {
+            ensureWeeklyArrayLength()
+            return
+        }
         name = s.name
         selected = s.orderedWorkouts
         currentIndex = s.currentIndex
         isActive = s.isActive
+        scheduleMode = s.scheduleMode
+        weeklyAssignments = s.weeklyWorkoutUUIDStrings
+        ensureWeeklyArrayLength()
     }
 
     private func save() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
 
-        // Enforce single active split
+        // Enforce single active split.
         if isActive {
             for s in activeSplits where s !== split {
                 s.isActive = false
             }
         }
 
+        ensureWeeklyArrayLength()
+
+        // Drop assignments referencing workouts no longer in this split.
+        let validIDs = Set(selected.map(\.uuid.uuidString))
+        let cleanedAssignments = weeklyAssignments.map { validIDs.contains($0) ? $0 : "" }
+
         if let s = split {
             s.name = trimmed
             s.setWorkouts(selected)
             s.currentIndex = min(currentIndex, max(0, selected.count - 1))
             s.isActive = isActive
+            s.scheduleMode = scheduleMode
+            s.weeklyWorkoutUUIDStrings = cleanedAssignments
         } else {
             let new = Split(name: trimmed, workouts: selected)
             new.currentIndex = min(currentIndex, max(0, selected.count - 1))
             new.isActive = isActive
+            new.scheduleMode = scheduleMode
+            new.weeklyWorkoutUUIDStrings = cleanedAssignments
             context.insert(new)
         }
         try? context.save()
