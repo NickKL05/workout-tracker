@@ -15,7 +15,7 @@ final class Split {
 
     /// 7-element array. Index = Weekday rawValue (0 = Sunday … 6 = Saturday).
     /// Each value is a workout UUID string, or "" for a rest day.
-    /// Always length 7 — `weeklyAssignments(...)` getters/setters enforce that.
+    /// Always length 7. `weeklyAssignments(...)` getters/setters enforce that.
     var weeklyWorkoutUUIDStrings: [String] = ["", "", "", "", "", "", ""]
 
     @Relationship var workouts: [Workout] = []
@@ -89,7 +89,7 @@ final class Split {
         weeklyWorkoutUUIDStrings = paddedWeeklyAssignments().map { validIDs.contains($0) ? $0 : "" }
     }
 
-    /// Advance the rotation by one. No-op in `.scheduled` mode — schedule is date-driven.
+    /// Advance the rotation by one. No-op in `.scheduled` mode, where the schedule is date-driven.
     func advance() {
         guard scheduleMode == .asynchronous else { return }
         guard !orderedWorkouts.isEmpty else { return }

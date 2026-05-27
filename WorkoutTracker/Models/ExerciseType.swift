@@ -3,7 +3,7 @@ import Foundation
 enum ExerciseType: String, Codable, CaseIterable, Identifiable {
     case weightReps      // bench press, curl
     case weightTime      // weighted plank
-    case cardio          // running, rowing — time + intensity
+    case cardio          // running, rowing: time + intensity
 
     var id: String { rawValue }
 

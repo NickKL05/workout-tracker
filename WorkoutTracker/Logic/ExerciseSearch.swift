@@ -3,7 +3,7 @@ import Foundation
 /// Fuzzy-ish text matcher for the exercise list / picker search bars.
 ///
 /// Matches a query against an exercise's name, equipment, and muscle group
-/// — and understands common gym abbreviations (DB = dumbbell, BB = barbell,
+/// It also understands common gym abbreviations (DB = dumbbell, BB = barbell,
 /// KB = kettlebell, Z2 = zone-2 cardio, OHP = overhead press, RDL = romanian
 /// deadlift, etc.) so that typing "db curl" or "bb row" returns what a lifter
 /// would expect.
