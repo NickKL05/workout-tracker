@@ -203,7 +203,7 @@ struct SplitEditorView: View {
                         HStack {
                             Text("Up next").font(.bodyMd).foregroundStyle(Theme.textSecondary)
                             Spacer()
-                            Text(selected[safe: currentIndex]?.name ?? "—")
+                            Text(selected[safe: currentIndex]?.name ?? "Rest")
                                 .font(.bodyBold)
                                 .foregroundStyle(Theme.textPrimary)
                         }

@@ -23,9 +23,9 @@ enum SplitScheduleMode: String, Codable, CaseIterable, Identifiable {
     var explainer: String {
         switch self {
         case .scheduled:
-            return "Pin each day of the week to a specific workout (or rest day). Best when your training days are consistent — like Monday is always legs."
+            return "Pin each day of the week to a specific workout (or rest day). Best when your training days are consistent, like Monday is always legs."
         case .asynchronous:
-            return "Keeps your workouts in a loop and just picks up wherever you left off. Finish a session and the next one in the list becomes “up next” — no calendar required, great when your week is unpredictable."
+            return "Keeps your workouts in a loop and just picks up wherever you left off. Finish a session and the next one in the list becomes “up next”, no calendar required. Great when your week is unpredictable."
         }
     }
 }
@@ -60,7 +60,7 @@ enum Weekday: Int, CaseIterable, Identifiable {
         }
     }
 
-    /// Order to show in the editor — start week on Monday to feel like a gym week.
+    /// Order to show in the editor. Starts on Monday to feel like a gym week.
     static let displayOrder: [Weekday] = [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
 
     static var today: Weekday {

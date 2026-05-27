@@ -29,7 +29,7 @@ enum ProgressiveOverload {
             if metGoal {
                 let newW = baseWeight + exercise.weightIncrement
                 return OverloadSuggestion(
-                    summary: "Hit goal last time — try \(format(newW)) lbs × \(exercise.goalReps) reps",
+                    summary: "Hit goal last time. Try \(format(newW)) lbs × \(exercise.goalReps) reps",
                     suggestedWeight: newW,
                     suggestedDurationSeconds: nil,
                     suggestedIntensity: nil,
@@ -37,7 +37,7 @@ enum ProgressiveOverload {
                 )
             } else {
                 return OverloadSuggestion(
-                    summary: "Last time: \(format(baseWeight)) lbs — push for \(exercise.goalSets)×\(exercise.goalReps)",
+                    summary: "Last time: \(format(baseWeight)) lbs. Push for \(exercise.goalSets)×\(exercise.goalReps)",
                     suggestedWeight: baseWeight,
                     suggestedDurationSeconds: nil,
                     suggestedIntensity: nil,
@@ -51,7 +51,7 @@ enum ProgressiveOverload {
             if metGoal {
                 let newW = baseWeight + exercise.weightIncrement
                 return OverloadSuggestion(
-                    summary: "Hit goal — try \(format(newW)) lbs × \(formatDuration(exercise.goalDurationSeconds))",
+                    summary: "Hit goal. Try \(format(newW)) lbs × \(formatDuration(exercise.goalDurationSeconds))",
                     suggestedWeight: newW,
                     suggestedDurationSeconds: exercise.goalDurationSeconds,
                     suggestedIntensity: nil,
@@ -59,7 +59,7 @@ enum ProgressiveOverload {
                 )
             } else {
                 return OverloadSuggestion(
-                    summary: "Last: \(format(baseWeight)) lbs × \(formatDuration(lastDuration)) — aim for \(formatDuration(exercise.goalDurationSeconds))",
+                    summary: "Last: \(format(baseWeight)) lbs × \(formatDuration(lastDuration)). Aim for \(formatDuration(exercise.goalDurationSeconds))",
                     suggestedWeight: baseWeight,
                     suggestedDurationSeconds: exercise.goalDurationSeconds,
                     suggestedIntensity: nil,
@@ -75,7 +75,7 @@ enum ProgressiveOverload {
                 if lastIntensity < 10 {
                     let newI = min(10, lastIntensity + exercise.intensityIncrement)
                     return OverloadSuggestion(
-                        summary: "Hit goal — try intensity \(newI) for \(formatDuration(exercise.goalDurationSeconds))",
+                        summary: "Hit goal. Try intensity \(newI) for \(formatDuration(exercise.goalDurationSeconds))",
                         suggestedWeight: nil,
                         suggestedDurationSeconds: exercise.goalDurationSeconds,
                         suggestedIntensity: newI,
@@ -84,7 +84,7 @@ enum ProgressiveOverload {
                 } else {
                     let newD = lastDuration + exercise.durationIncrementSeconds
                     return OverloadSuggestion(
-                        summary: "Maxed intensity — try \(formatDuration(newD)) at intensity 10",
+                        summary: "Maxed intensity. Try \(formatDuration(newD)) at intensity 10",
                         suggestedWeight: nil,
                         suggestedDurationSeconds: newD,
                         suggestedIntensity: 10,
@@ -93,7 +93,7 @@ enum ProgressiveOverload {
                 }
             } else {
                 return OverloadSuggestion(
-                    summary: "Last: \(formatDuration(lastDuration)) @ int \(lastIntensity) — aim for goal",
+                    summary: "Last: \(formatDuration(lastDuration)) @ int \(lastIntensity). Aim for goal",
                     suggestedWeight: nil,
                     suggestedDurationSeconds: exercise.goalDurationSeconds,
                     suggestedIntensity: exercise.goalIntensity,

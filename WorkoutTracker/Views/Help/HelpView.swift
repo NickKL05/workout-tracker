@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Getting-started + reference guide. Linked from the question-mark icon in
-/// HomeView's toolbar. Plain content — no SwiftData here.
+/// HomeView's toolbar. Plain content, no SwiftData here.
 struct HelpView: View {
     @Environment(\.dismiss) private var dismiss
 
@@ -14,7 +14,7 @@ struct HelpView: View {
                         hero
                         section(
                             title: "1. Build your library",
-                            body: "Open Exercises and add the lifts you actually do. Each exercise has a type (weight × reps, weight × time, or cardio), a muscle group, and an equipment tag — those tags power search and recommendations later."
+                            body: "Open Exercises and add the lifts you actually do. Each exercise has a type (weight × reps, weight × time, or cardio), a muscle group, and an equipment tag. Those tags power search and recommendations later."
                         )
                         section(
                             title: "2. Create workouts",
@@ -22,7 +22,7 @@ struct HelpView: View {
                         )
                         section(
                             title: "3. (Optional) Define a split",
-                            body: "A split groups workouts and decides what's “up next” on the home screen. Two flavors:\n\n• Weekly schedule — pin a workout to each weekday. Best if you train on the same days every week.\n\n• Rotation — cycle through workouts in order. Each finished session advances to the next. Best if your week is unpredictable."
+                            body: "A split groups workouts and decides what's “up next” on the home screen. Two flavors:\n\n• Weekly schedule: pin a workout to each weekday. Best if you train on the same days every week.\n\n• Rotation: cycle through workouts in order. Each finished session advances to the next. Best if your week is unpredictable."
                         )
                         section(
                             title: "4. Start a session",
@@ -58,7 +58,7 @@ struct HelpView: View {
                 Text("How this app works")
                     .font(.titleLg)
                     .foregroundStyle(Theme.textPrimary)
-                Text("Four building blocks — exercises, workouts, splits, sessions — chain together to track every lift and progressively get stronger.")
+                Text("Four building blocks (exercises, workouts, splits, sessions) chain together to track every lift and progressively get stronger.")
                     .font(.bodyMd)
                     .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -92,11 +92,11 @@ struct HelpView: View {
                     Text("The exercise search bar understands more than names.")
                         .font(.bodyMd)
                         .foregroundStyle(Theme.textPrimary)
-                    bullet("By equipment — \"machine\", \"dumbbell\", or just \"DB\". \"BB\" matches barbell, \"KB\" kettlebell.")
-                    bullet("By muscle worked — \"chest\", \"lats\", \"abs\", \"hamstrings\".")
-                    bullet("By movement shorthand — \"OHP\", \"RDL\", \"pulldown\".")
-                    bullet("By cardio zone — \"Z2\" finds your low-intensity work, \"HIIT\" the hard stuff.")
-                    bullet("Combine words — \"DB curl\" or \"BB row\" narrows the list.")
+                    bullet("By equipment: \"machine\", \"dumbbell\", or just \"DB\". \"BB\" matches barbell, \"KB\" kettlebell.")
+                    bullet("By muscle worked: \"chest\", \"lats\", \"abs\", \"hamstrings\".")
+                    bullet("By movement shorthand: \"OHP\", \"RDL\", \"pulldown\".")
+                    bullet("By cardio zone: \"Z2\" finds your low-intensity work, \"HIIT\" the hard stuff.")
+                    bullet("Combine words: \"DB curl\" or \"BB row\" narrows the list.")
                 }
             }
         }
@@ -118,7 +118,7 @@ struct HelpView: View {
                         .font(.bodyMd)
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Didn't hit the goal? It'll suggest matching the previous weight and pushing for full reps instead — no jumping ahead before you've earned it.")
+                    Text("Didn't hit the goal? It'll suggest matching the previous weight and pushing for full reps instead, so you don't jump ahead before you've earned it.")
                         .font(.bodyMd)
                         .foregroundStyle(Theme.textSecondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -135,7 +135,7 @@ struct HelpView: View {
                 .foregroundStyle(Theme.textMuted)
             Card {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Tap any exercise in your library — or expand one mid-session — and you'll see charts for how your top weight and best reps have moved over time. They need at least two finished sessions to render.")
+                    Text("Tap any exercise in your library, or expand one mid-session, and you'll see charts for how your top weight and best reps have moved over time. They need at least two finished sessions to render.")
                         .font(.bodyMd)
                         .foregroundStyle(Theme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
