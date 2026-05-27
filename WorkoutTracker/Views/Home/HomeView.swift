@@ -9,7 +9,7 @@ struct HomeView: View {
     @Query(sort: \WorkoutSession.startedAt, order: .reverse) private var sessions: [WorkoutSession]
 
     @State private var pendingSession: WorkoutSession?
-    @State private var showStartConfirm: Workout?
+    @State private var quickStartTarget: Workout?
     @State private var showHelp = false
     @State private var showSettings = false
 
@@ -38,13 +38,11 @@ struct HomeView: View {
             .navigationDestination(item: $pendingSession) { session in
                 ActiveWorkoutView(session: session)
             }
-            .confirmationDialog(
-                "Start workout",
-                isPresented: Binding(get: { showStartConfirm != nil }, set: { if !$0 { showStartConfirm = nil } }),
-                presenting: showStartConfirm
-            ) { workout in
-                Button("Start \(workout.name)") { start(workout: workout, split: activeSplits.first) }
-                Button("Cancel", role: .cancel) {}
+            .sheet(item: $quickStartTarget) { workout in
+                QuickStartSheet(workout: workout) {
+                    start(workout: workout, split: activeSplits.first)
+                }
+                .preferredColorScheme(.dark)
             }
             .sheet(isPresented: $showHelp) {
                 HelpView()
@@ -141,29 +139,38 @@ struct HomeView: View {
     @ViewBuilder
     private func splitHeroCard(split: Split) -> some View {
         if let next = split.nextWorkout {
-            Card(elevated: true) {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text(heroLabel(for: split).uppercased())
-                            .font(.caption)
-                            .tracking(1.2)
-                            .foregroundStyle(Theme.textMuted)
-                        Spacer()
-                        Text(heroSubLabel(for: split))
-                            .font(.caption)
-                            .foregroundStyle(Theme.textMuted)
+            Button { quickStartTarget = next } label: {
+                Card(elevated: true) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            Text(heroLabel(for: split).uppercased())
+                                .font(.caption)
+                                .tracking(1.2)
+                                .foregroundStyle(Theme.textMuted)
+                            Spacer()
+                            Text(heroSubLabel(for: split))
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted)
+                        }
+                        Text(next.name)
+                            .font(.titleLg)
+                            .foregroundStyle(Theme.textPrimary)
+                        HStack(spacing: 10) {
+                            Text("\(next.orderedExercises.count) exercise\(next.orderedExercises.count == 1 ? "" : "s") • from \(split.name)")
+                                .font(.bodyMd)
+                                .foregroundStyle(Theme.textSecondary)
+                            Spacer()
+                            Image(systemName: "play.fill")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Theme.accentOnAccent)
+                                .frame(width: 40, height: 40)
+                                .background(Theme.accent)
+                                .clipShape(Circle())
+                        }
                     }
-                    Text(next.name)
-                        .font(.titleLg)
-                        .foregroundStyle(Theme.textPrimary)
-                    Text("\(next.orderedExercises.count) exercise\(next.orderedExercises.count == 1 ? "" : "s") • from \(split.name)")
-                        .font(.bodyMd)
-                        .foregroundStyle(Theme.textSecondary)
-                    Button("Start workout") { showStartConfirm = next }
-                        .primaryButton()
-                        .padding(.top, 4)
                 }
             }
+            .buttonStyle(.plain)
         } else if split.scheduleMode == .scheduled {
             // Scheduled mode with no workout for today = rest day.
             Card(elevated: true) {
@@ -217,7 +224,7 @@ struct HomeView: View {
     }
 
     private func workoutRow(_ workout: Workout) -> some View {
-        Button { showStartConfirm = workout } label: {
+        Button { quickStartTarget = workout } label: {
             Card {
                 HStack(spacing: 14) {
                     VStack(alignment: .leading, spacing: 4) {

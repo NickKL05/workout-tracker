@@ -22,7 +22,7 @@ struct HelpView: View {
                         )
                         section(
                             title: "3. (Optional) Define a split",
-                            body: "A split groups workouts and decides what's “up next” on the home screen. Two flavors:\n\n• Weekly schedule: pin a workout to each weekday. Best if you train on the same days every week.\n\n• Rotation: cycle through workouts in order. Each finished session advances to the next. Best if your week is unpredictable."
+                            body: "A split groups workouts and decides what's “up next” on the home screen. Two flavors:\n\n• Weekly schedule: pin a workout to each weekday. Best if you train on the same days every week.\n\n• Asynchronous: cycle through workouts in order. Each finished session advances to the next. Best if your week is unpredictable."
                         )
                         section(
                             title: "4. Start a session",
