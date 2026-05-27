@@ -196,85 +196,102 @@ private struct ChartCanvas: View {
 
     var body: some View {
         GeometryReader { geo in
-            let values = points.map(\.value)
-            let lo = values.min() ?? 0
-            let hi = values.max() ?? 1
-            let span = max(hi - lo, 1)
-            // Pad the y range so flat lines aren't pinned to the edges.
-            let pad = span * 0.15
-            let yMin = lo - pad
-            let yMax = hi + pad
-            let yRange = yMax - yMin
+            chartBody(in: geo.size)
+        }
+    }
 
-            let inset: CGFloat = 4
-            let w = geo.size.width - inset * 2
-            let h = geo.size.height - inset * 2
-            let stepX = points.count > 1 ? w / CGFloat(points.count - 1) : 0
+    /// Layout state shared by all sub-paths.
+    private struct Layout {
+        let inset: CGFloat
+        let w: CGFloat
+        let h: CGFloat
+        let stepX: CGFloat
+        let yMin: Double
+        let yRange: Double
 
-            func point(_ i: Int) -> CGPoint {
-                let v = points[i].value
-                let normalized = CGFloat((v - yMin) / yRange)
-                let x = inset + CGFloat(i) * stepX
-                let y = inset + h - normalized * h
-                return CGPoint(x: x, y: y)
+        func point(at i: Int, value: Double) -> CGPoint {
+            let normalized = CGFloat((value - yMin) / yRange)
+            let x = inset + CGFloat(i) * stepX
+            let y = inset + h - normalized * h
+            return CGPoint(x: x, y: y)
+        }
+    }
+
+    private func layout(for size: CGSize) -> Layout {
+        let values = points.map(\.value)
+        let lo = values.min() ?? 0
+        let hi = values.max() ?? 1
+        let span = max(hi - lo, 1)
+        let pad = span * 0.15
+        let yMin = lo - pad
+        let yMax = hi + pad
+        let inset: CGFloat = 4
+        let w = size.width - inset * 2
+        let h = size.height - inset * 2
+        let stepX = points.count > 1 ? w / CGFloat(points.count - 1) : 0
+        return Layout(inset: inset, w: w, h: h, stepX: stepX, yMin: yMin, yRange: yMax - yMin)
+    }
+
+    @ViewBuilder
+    private func chartBody(in size: CGSize) -> some View {
+        let l = layout(for: size)
+        ZStack(alignment: .topLeading) {
+            // Subtle grid (3 horizontal lines).
+            Path { p in
+                for i in 0...2 {
+                    let y = l.inset + l.h * CGFloat(i) / 2
+                    p.move(to: CGPoint(x: l.inset, y: y))
+                    p.addLine(to: CGPoint(x: l.inset + l.w, y: y))
+                }
+            }
+            .stroke(Theme.stroke.opacity(0.5), style: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
+
+            // Fill under line.
+            Path { p in
+                guard points.count >= 2 else { return }
+                let first = l.point(at: 0, value: points[0].value)
+                p.move(to: CGPoint(x: first.x, y: l.inset + l.h))
+                for i in 0..<points.count {
+                    p.addLine(to: l.point(at: i, value: points[i].value))
+                }
+                let last = l.point(at: points.count - 1, value: points[points.count - 1].value)
+                p.addLine(to: CGPoint(x: last.x, y: l.inset + l.h))
+                p.closeSubpath()
+            }
+            .fill(
+                LinearGradient(
+                    colors: [Theme.accent.opacity(0.18), Theme.accent.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+
+            // Line.
+            Path { p in
+                guard !points.isEmpty else { return }
+                p.move(to: l.point(at: 0, value: points[0].value))
+                for i in 1..<points.count {
+                    p.addLine(to: l.point(at: i, value: points[i].value))
+                }
+            }
+            .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+            // Dots.
+            ForEach(points.indices, id: \.self) { i in
+                let pt = l.point(at: i, value: points[i].value)
+                Circle()
+                    .fill(Theme.accent)
+                    .frame(width: 5, height: 5)
+                    .position(x: pt.x, y: pt.y)
             }
 
-            ZStack(alignment: .topLeading) {
-                // Subtle grid (3 horizontal lines).
-                Path { p in
-                    for i in 0...2 {
-                        let y = inset + h * CGFloat(i) / 2
-                        p.move(to: CGPoint(x: inset, y: y))
-                        p.addLine(to: CGPoint(x: inset + w, y: y))
-                    }
-                }
-                .stroke(Theme.stroke.opacity(0.5), style: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-
-                // Fill under line.
-                Path { p in
-                    guard points.count >= 2 else { return }
-                    p.move(to: CGPoint(x: point(0).x, y: inset + h))
-                    for i in 0..<points.count {
-                        p.addLine(to: point(i))
-                    }
-                    p.addLine(to: CGPoint(x: point(points.count - 1).x, y: inset + h))
-                    p.closeSubpath()
-                }
-                .fill(
-                    LinearGradient(
-                        colors: [Theme.accent.opacity(0.18), Theme.accent.opacity(0)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-
-                // Line.
-                Path { p in
-                    guard !points.isEmpty else { return }
-                    p.move(to: point(0))
-                    for i in 1..<points.count {
-                        p.addLine(to: point(i))
-                    }
-                }
-                .stroke(Theme.accent, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-
-                // Dots.
-                ForEach(points.indices, id: \.self) { i in
-                    let pt = point(i)
-                    Circle()
-                        .fill(Theme.accent)
-                        .frame(width: 5, height: 5)
-                        .position(x: pt.x, y: pt.y)
-                }
-
-                // Highlight the latest dot.
-                if let last = points.indices.last {
-                    let pt = point(last)
-                    Circle()
-                        .stroke(Theme.accent, lineWidth: 2)
-                        .frame(width: 10, height: 10)
-                        .position(x: pt.x, y: pt.y)
-                }
+            // Highlight the latest dot.
+            if let lastIdx = points.indices.last {
+                let pt = l.point(at: lastIdx, value: points[lastIdx].value)
+                Circle()
+                    .stroke(Theme.accent, lineWidth: 2)
+                    .frame(width: 10, height: 10)
+                    .position(x: pt.x, y: pt.y)
             }
         }
     }
