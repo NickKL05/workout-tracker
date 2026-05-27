@@ -7,6 +7,7 @@ struct ExerciseLoggerView: View {
     @Binding var isExpanded: Bool
 
     @Environment(\.modelContext) private var context
+    @State private var showOverloadInfo = false
 
     var body: some View {
         Card(padding: 14) {
@@ -22,6 +23,10 @@ struct ExerciseLoggerView: View {
                     if let previousLog {
                         Divider().background(Theme.stroke)
                         previousSection(previousLog)
+                    }
+                    if let ex = log.exercise {
+                        Divider().background(Theme.stroke)
+                        ExerciseProgressionView(exercise: ex)
                     }
                 }
             }
@@ -81,26 +86,42 @@ struct ExerciseLoggerView: View {
     }
 
     private func suggestionCard(_ s: OverloadSuggestion) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: s.metGoalPreviously ? "arrow.up.right.circle.fill" : "target")
-                .foregroundStyle(s.metGoalPreviously ? Theme.accent : Theme.textSecondary)
-                .font(.system(size: 16, weight: .semibold))
-                .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(s.metGoalPreviously ? "OVERLOAD" : "TARGET")
-                    .font(.caption)
-                    .tracking(1.1)
-                    .foregroundStyle(Theme.textMuted)
-                Text(s.summary)
-                    .font(.bodyMd)
-                    .foregroundStyle(Theme.textPrimary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: s.metGoalPreviously ? "arrow.up.right.circle.fill" : "target")
+                    .foregroundStyle(s.metGoalPreviously ? Theme.accent : Theme.textSecondary)
+                    .font(.system(size: 16, weight: .semibold))
+                    .padding(.top, 1)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(s.metGoalPreviously ? "TIME TO LEVEL UP" : "TODAY'S TARGET")
+                            .font(.caption)
+                            .tracking(1.1)
+                            .foregroundStyle(Theme.textMuted)
+                        Button { showOverloadInfo = true } label: {
+                            Image(systemName: "questionmark.circle")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.textMuted)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Text(s.summary)
+                        .font(.bodyMd)
+                        .foregroundStyle(Theme.textPrimary)
+                }
+                Spacer()
             }
-            Spacer()
             if let w = s.suggestedWeight {
                 Button {
                     applyToAll(weight: w)
                 } label: {
-                    Text("Apply").font(.caption).foregroundStyle(Theme.textPrimary)
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.to.line")
+                            .font(.caption)
+                        Text("Pre-fill \(Format.weight(w)) lbs on remaining sets")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textPrimary)
+                    }
                 }
                 .ghostButton()
             }
@@ -108,6 +129,11 @@ struct ExerciseLoggerView: View {
         .padding(12)
         .background(Theme.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
+        .alert("Progressive overload", isPresented: $showOverloadInfo) {
+            Button("Got it", role: .cancel) {}
+        } message: {
+            Text("Each session this app looks at your last performance. If you hit every set at goal reps, it suggests bumping the weight by your configured step. Tap the pre-fill button to copy that weight onto every unfinished set so you don't have to type it.")
+        }
     }
 
     private var setsList: some View {

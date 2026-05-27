@@ -46,6 +46,28 @@ enum MuscleGroup: String, Codable, CaseIterable, Identifiable {
         .core, .neck, .fullBody, .cardio, .other
     ]
 
+    /// Searchable aliases for this muscle group (used in the exercise picker
+    /// so e.g. "abs" finds Core exercises, "lats" finds Back exercises).
+    var searchAliases: [String] {
+        switch self {
+        case .chest:      return ["pec", "pecs", "push"]
+        case .back:       return ["lat", "lats", "rhomboid", "trap", "traps", "pull"]
+        case .shoulders:  return ["delt", "delts", "deltoid", "ohp"]
+        case .biceps:     return ["bi", "bis", "arm"]
+        case .triceps:    return ["tri", "tris", "arm"]
+        case .forearms:   return ["grip", "wrist"]
+        case .quads:      return ["quad", "thigh", "leg"]
+        case .hamstrings: return ["ham", "hams", "posterior", "leg"]
+        case .glutes:     return ["glute", "butt", "hip", "posterior"]
+        case .calves:     return ["calf", "leg"]
+        case .core:       return ["ab", "abs", "midsection", "obliques"]
+        case .neck:       return []
+        case .cardio:     return ["conditioning", "aerobic", "z2", "zone 2", "endurance"]
+        case .fullBody:   return ["compound", "olympic"]
+        case .other:      return []
+        }
+    }
+
     /// Keywords that, if found in a workout name, suggest exercises from this group.
     /// Matching is case-insensitive substring.
     var workoutNameKeywords: [String] {

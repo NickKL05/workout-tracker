@@ -11,7 +11,7 @@ struct SplitEditorView: View {
     @State private var selected: [Workout] = []
     @State private var currentIndex: Int = 0
     @State private var isActive: Bool = false
-    @State private var scheduleMode: SplitScheduleMode = .asynchronous
+    @State private var scheduleMode: SplitScheduleMode = .scheduled
     /// weekday.rawValue → workout UUID string ("" = rest)
     @State private var weeklyAssignments: [String] = Array(repeating: "", count: 7)
     @State private var showPicker = false
@@ -106,7 +106,7 @@ struct SplitEditorView: View {
 
     private var modeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "Mode")
+            SectionHeader(title: "How does this split work?")
             Picker("", selection: $scheduleMode) {
                 ForEach(SplitScheduleMode.allCases) { m in
                     Text(m.shortLabel).tag(m)
@@ -118,6 +118,7 @@ struct SplitEditorView: View {
                 .font(.caption)
                 .foregroundStyle(Theme.textSecondary)
                 .padding(.horizontal, 4)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

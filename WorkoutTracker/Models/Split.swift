@@ -11,7 +11,7 @@ final class Split {
     var createdAt: Date = Date()
 
     /// Stored as raw string; access via `scheduleMode`.
-    var scheduleModeRaw: String = SplitScheduleMode.asynchronous.rawValue
+    var scheduleModeRaw: String = SplitScheduleMode.scheduled.rawValue
 
     /// 7-element array. Index = Weekday rawValue (0 = Sunday … 6 = Saturday).
     /// Each value is a workout UUID string, or "" for a rest day.
@@ -30,7 +30,7 @@ final class Split {
     }
 
     var scheduleMode: SplitScheduleMode {
-        get { SplitScheduleMode(rawValue: scheduleModeRaw) ?? .asynchronous }
+        get { SplitScheduleMode(rawValue: scheduleModeRaw) ?? .scheduled }
         set { scheduleModeRaw = newValue.rawValue }
     }
 

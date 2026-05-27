@@ -76,30 +76,59 @@ struct WorkoutEditorView: View {
 
     private var exercisesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(
-                title: "Exercises",
-                trailing: AnyView(
-                    Button { showPicker = true } label: {
-                        Label("Add", systemImage: "plus")
-                            .font(.caption)
-                    }
-                    .foregroundStyle(Theme.textPrimary)
-                )
-            )
+            SectionHeader(title: "Exercises")
             if selected.isEmpty {
-                Card {
-                    Text("Tap “Add” to include exercises.")
-                        .font(.bodyMd)
-                        .foregroundStyle(Theme.textSecondary)
-                }
+                emptyExercisesCard
             } else {
                 VStack(spacing: 10) {
                     ForEach(Array(selected.enumerated()), id: \.element.uuid) { idx, ex in
                         exerciseRow(ex: ex, idx: idx)
                     }
                 }
+                addExerciseButton
             }
         }
+    }
+
+    private var emptyExercisesCard: some View {
+        Button { showPicker = true } label: {
+            Card {
+                HStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(Theme.accent)
+                            .frame(width: 44, height: 44)
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundStyle(Theme.accentOnAccent)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Add exercises")
+                            .font(.title)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("Pick from your library or create a new one")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textMuted)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var addExerciseButton: some View {
+        Button { showPicker = true } label: {
+            HStack {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                Text("Add more exercises").font(.bodyBold)
+            }
+        }
+        .secondaryButton()
     }
 
     private func exerciseRow(ex: Exercise, idx: Int) -> some View {
@@ -207,9 +236,9 @@ struct ExercisePickerView: View {
     }
 
     private var filteredExercises: [Exercise] {
-        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        let q = search.trimmingCharacters(in: .whitespaces)
         if q.isEmpty { return allExercises }
-        return allExercises.filter { $0.name.lowercased().contains(q) }
+        return allExercises.filter { ExerciseSearch.matches($0, query: q) }
     }
 
     private var groupedExercises: [(MuscleGroup, [Exercise])] {
@@ -269,7 +298,7 @@ struct ExercisePickerView: View {
     private var searchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(Theme.textMuted)
-            TextField("Search exercises", text: $search)
+            TextField("Try “DB curl”, “bench”, or “lats”", text: $search)
                 .foregroundStyle(Theme.textPrimary)
                 .submitLabel(.search)
                 .autocorrectionDisabled(true)

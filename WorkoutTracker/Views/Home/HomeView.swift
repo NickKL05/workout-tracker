@@ -10,6 +10,7 @@ struct HomeView: View {
 
     @State private var pendingSession: WorkoutSession?
     @State private var showStartConfirm: Workout?
+    @State private var showHelp = false
 
     var body: some View {
         NavigationStack {
@@ -42,18 +43,37 @@ struct HomeView: View {
                 Button("Start \(workout.name)") { start(workout: workout, split: activeSplits.first) }
                 Button("Cancel", role: .cancel) {}
             }
+            .sheet(isPresented: $showHelp) {
+                HelpView()
+                    .preferredColorScheme(.dark)
+            }
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(greetingDate())
-                .font(.caption)
-                .tracking(1.2)
-                .foregroundStyle(Theme.textMuted)
-            Text("Workout")
-                .font(.displayLg)
-                .foregroundStyle(Theme.textPrimary)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(greetingDate())
+                    .font(.caption)
+                    .tracking(1.2)
+                    .foregroundStyle(Theme.textMuted)
+                Text("Workout")
+                    .font(.displayLg)
+                    .foregroundStyle(Theme.textPrimary)
+            }
+            Spacer()
+            Button {
+                showHelp = true
+            } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .background(Theme.surface)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Theme.stroke, lineWidth: 0.5))
+            }
+            .accessibilityLabel("Help and getting started")
         }
         .padding(.top, 12)
     }

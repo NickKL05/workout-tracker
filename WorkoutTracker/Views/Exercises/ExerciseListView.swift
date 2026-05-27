@@ -33,9 +33,9 @@ struct ExerciseListView: View {
     }
 
     private var filteredExercises: [Exercise] {
-        let q = search.trimmingCharacters(in: .whitespaces).lowercased()
+        let q = search.trimmingCharacters(in: .whitespaces)
         if q.isEmpty { return exercises }
-        return exercises.filter { $0.name.lowercased().contains(q) }
+        return exercises.filter { ExerciseSearch.matches($0, query: q) }
     }
 
     private var groupedExercises: [(MuscleGroup, [Exercise])] {
@@ -81,7 +81,7 @@ struct ExerciseListView: View {
     private var searchBar: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(Theme.textMuted)
-            TextField("Search exercises", text: $search)
+            TextField("Search by name, muscle, or equipment", text: $search)
                 .foregroundStyle(Theme.textPrimary)
                 .submitLabel(.search)
                 .autocorrectionDisabled(true)
