@@ -14,6 +14,24 @@ final class ExerciseLog {
     @Relationship(deleteRule: .cascade) var sets: [SetLog] = []
     @Relationship var exercise: Exercise?
 
+    /// Initialiser used by `WorkoutSession` when seeding logs from a
+    /// workout. Pulls identity (name/type/unilateral) off the Exercise
+    /// and pulls goals off the WorkoutExercise — the per-workout copy.
+    init(workoutExercise: WorkoutExercise) {
+        let exercise = workoutExercise.exercise
+        self.exercise = exercise
+        self.exerciseName = exercise?.name ?? ""
+        self.exerciseTypeRaw = exercise?.typeRaw ?? ExerciseType.weightReps.rawValue
+        self.isUnilateral = exercise?.isUnilateral ?? false
+        self.goalSets = workoutExercise.goalSets
+        self.goalReps = workoutExercise.goalReps
+        self.goalDurationSeconds = workoutExercise.goalDurationSeconds
+        self.goalIntensity = workoutExercise.goalIntensity
+    }
+
+    /// Fallback initialiser kept for code paths that still hand us a bare
+    /// Exercise (e.g. ad-hoc test fixtures). Uses the Exercise's default
+    /// goal values.
     init(exercise: Exercise) {
         self.exercise = exercise
         self.exerciseName = exercise.name

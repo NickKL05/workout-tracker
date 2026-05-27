@@ -156,7 +156,12 @@ struct ExerciseEditorView: View {
     @ViewBuilder
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Goals")
+            SectionHeader(title: "Default sets & reps")
+            Text("Starting values when this exercise is added to a workout. Each workout keeps its own copy after that, so editing these later doesn't change existing workouts.")
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
+                .padding(.horizontal, 4)
+                .fixedSize(horizontal: false, vertical: true)
             Card {
                 VStack(spacing: 14) {
                     StepperRow(label: "Sets", value: $goalSets, range: 1...20)

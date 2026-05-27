@@ -8,6 +8,7 @@ struct ExerciseLoggerView: View {
 
     @Environment(\.modelContext) private var context
     @State private var showOverloadInfo = false
+    @State private var showGoalEditor = false
 
     var body: some View {
         Card(padding: 14) {
@@ -15,6 +16,7 @@ struct ExerciseLoggerView: View {
                 header
                 if isExpanded {
                     Divider().background(Theme.stroke)
+                    goalPill
                     if let suggestion = suggestion {
                         suggestionCard(suggestion)
                     }
@@ -31,6 +33,37 @@ struct ExerciseLoggerView: View {
                 }
             }
         }
+        .sheet(isPresented: $showGoalEditor) {
+            SessionGoalEditorSheet(log: log)
+                .preferredColorScheme(.dark)
+        }
+    }
+
+    private var goalPill: some View {
+        Button {
+            showGoalEditor = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "target")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
+                Text(headerSubtitle)
+                    .font(.bodyBold)
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Image(systemName: "pencil")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textMuted)
+                Text("Edit for this session")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textMuted)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Theme.surfaceElevated)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private var header: some View {
@@ -82,7 +115,7 @@ struct ExerciseLoggerView: View {
 
     private var suggestion: OverloadSuggestion? {
         guard let ex = log.exercise else { return nil }
-        return ProgressiveOverload.suggest(for: ex, previous: previousLog)
+        return ProgressiveOverload.suggest(current: log, previous: previousLog, exercise: ex)
     }
 
     private func suggestionCard(_ s: OverloadSuggestion) -> some View {
@@ -223,5 +256,60 @@ struct ExerciseLoggerView: View {
             s.weight = weight
         }
         try? context.save()
+    }
+}
+
+// MARK: - Session-only goal editor
+
+/// Edits goal values on a live `ExerciseLog`. Changes apply to THIS
+/// session only; the underlying WorkoutExercise template is untouched.
+struct SessionGoalEditorSheet: View {
+    @Bindable var log: ExerciseLog
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.background.ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        Text("Editing only changes the targets for this session. The saved workout template keeps its original numbers.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Card {
+                            VStack(spacing: 14) {
+                                if log.exerciseType != .cardio {
+                                    StepperRow(label: "Sets", value: $log.goalSets, range: 1...20)
+                                }
+                                if log.exerciseType == .weightReps {
+                                    StepperRow(label: "Reps", value: $log.goalReps, range: 1...100)
+                                }
+                                if log.exerciseType == .weightTime || log.exerciseType == .cardio {
+                                    StepperRow(label: "Duration (sec)", value: $log.goalDurationSeconds, range: 5...7200, step: 5)
+                                }
+                                if log.exerciseType == .cardio {
+                                    StepperRow(label: "Intensity (1-10)", value: $log.goalIntensity, range: 1...10)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 40)
+                }
+            }
+            .navigationTitle("Adjust goal")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        try? context.save()
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }

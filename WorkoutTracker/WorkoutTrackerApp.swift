@@ -10,6 +10,7 @@ struct WorkoutTrackerApp: App {
         let schema = Schema([
             Exercise.self,
             Workout.self,
+            WorkoutExercise.self,
             Split.self,
             WorkoutSession.self,
             ExerciseLog.self,
@@ -21,6 +22,23 @@ struct WorkoutTrackerApp: App {
             fatalError("Failed to initialize SwiftData container: \(error)")
         }
         ExerciseSeeder.seedIfNeeded(context: container.mainContext)
+        Self.migrateWorkoutsToWorkoutExercises(context: container.mainContext)
+    }
+
+    /// One-shot data backfill from legacy `Workout.exercises` into the new
+    /// `WorkoutExercise` rows. Idempotent: each workout self-checks and
+    /// no-ops once it already has WorkoutExercise children.
+    private static func migrateWorkoutsToWorkoutExercises(context: ModelContext) {
+        let descriptor = FetchDescriptor<Workout>()
+        guard let workouts = try? context.fetch(descriptor) else { return }
+        var migrated = false
+        for workout in workouts where workout.workoutExercises.isEmpty && !workout.exercises.isEmpty {
+            workout.migrateLegacyExercisesIfNeeded(context: context)
+            migrated = true
+        }
+        if migrated {
+            try? context.save()
+        }
     }
 
     var body: some Scene {
