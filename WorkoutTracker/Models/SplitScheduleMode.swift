@@ -9,14 +9,14 @@ enum SplitScheduleMode: String, Codable, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .scheduled:    return "Weekly schedule"
-        case .asynchronous: return "Rotation"
+        case .asynchronous: return "Asynchronous"
         }
     }
 
     var shortLabel: String {
         switch self {
         case .scheduled:    return "Weekly"
-        case .asynchronous: return "Rotation"
+        case .asynchronous: return "Async"
         }
     }
 

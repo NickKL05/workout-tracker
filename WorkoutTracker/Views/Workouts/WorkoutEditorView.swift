@@ -319,7 +319,9 @@ struct ExercisePickerView: View {
     @Query(sort: \Exercise.name) private var allExercises: [Exercise]
 
     @State private var search: String = ""
-    @State private var picking: Set<UUID> = []
+    /// Ordered by user tap sequence, so adding D, A, C, B yields D, A, C, B
+    /// in the workout (not alphabetical).
+    @State private var picking: [UUID] = []
     @State private var showCreate = false
     @State private var collapsedGroups: Set<MuscleGroup> = []
 
@@ -500,10 +502,13 @@ struct ExercisePickerView: View {
 
     private func row(_ ex: Exercise) -> some View {
         let isAlreadyAdded = selectedUUIDs.contains(ex.uuid)
-        let isPicking = picking.contains(ex.uuid)
         return Button {
             if isAlreadyAdded { return }
-            if isPicking { picking.remove(ex.uuid) } else { picking.insert(ex.uuid) }
+            if let idx = picking.firstIndex(of: ex.uuid) {
+                picking.remove(at: idx)
+            } else {
+                picking.append(ex.uuid)
+            }
         } label: {
             Card(padding: 12) {
                 HStack(spacing: 10) {
@@ -518,10 +523,19 @@ struct ExercisePickerView: View {
                     Spacer()
                     if isAlreadyAdded {
                         Text("Added").font(.caption).foregroundStyle(Theme.textMuted)
+                    } else if let order = picking.firstIndex(of: ex.uuid) {
+                        ZStack {
+                            Circle()
+                                .fill(Theme.accent)
+                                .frame(width: 24, height: 24)
+                            Text("\(order + 1)")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(Theme.accentOnAccent)
+                        }
                     } else {
-                        Image(systemName: isPicking ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: "circle")
                             .font(.system(size: 22))
-                            .foregroundStyle(isPicking ? Theme.accent : Theme.textMuted)
+                            .foregroundStyle(Theme.textMuted)
                     }
                 }
             }
@@ -542,7 +556,9 @@ struct ExercisePickerView: View {
         VStack(spacing: 10) {
             if !picking.isEmpty {
                 Button("Add \(picking.count) exercise\(picking.count == 1 ? "" : "s")") {
-                    onPicked(allExercises.filter { picking.contains($0.uuid) })
+                    let byID = Dictionary(uniqueKeysWithValues: allExercises.map { ($0.uuid, $0) })
+                    let ordered = picking.compactMap { byID[$0] }
+                    onPicked(ordered)
                     dismiss()
                 }
                 .primaryButton()
