@@ -29,6 +29,23 @@ enum Equipment: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    /// Alternate names / abbreviations searchable in the exercise picker.
+    /// Pure lowercase, no display names (those are matched separately).
+    var searchAliases: [String] {
+        switch self {
+        case .barbell:    return ["bb", "bar"]
+        case .dumbbell:   return ["db", "dbs"]
+        case .cable:      return ["pulley"]
+        case .machine:    return ["selectorized", "plate loaded"]
+        case .bodyweight: return ["bw", "no weight"]
+        case .kettlebell: return ["kb"]
+        case .bike:       return ["cycle", "spin", "cardio"]
+        case .treadmill:  return ["run", "walk", "cardio"]
+        case .rower:      return ["row", "erg", "cardio"]
+        case .other:      return []
+        }
+    }
+
     /// Default progressive-overload weight step (lbs) for this equipment.
     var defaultWeightIncrement: Double {
         switch self {

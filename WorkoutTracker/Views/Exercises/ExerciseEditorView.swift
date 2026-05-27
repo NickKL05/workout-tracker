@@ -41,6 +41,10 @@ struct ExerciseEditorView: View {
                     goalsSection
                     overloadSection
 
+                    if let ex = exercise {
+                        ExerciseProgressionView(exercise: ex)
+                    }
+
                     LabeledField(label: "Notes") {
                         TextField("Optional", text: $notes)
                             .foregroundStyle(Theme.textPrimary)
@@ -174,6 +178,11 @@ struct ExerciseEditorView: View {
     private var overloadSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Progressive overload")
+            Text("When you hit every goal set, the app suggests bumping the load by this much next time.")
+                .font(.caption)
+                .foregroundStyle(Theme.textSecondary)
+                .padding(.horizontal, 4)
+                .fixedSize(horizontal: false, vertical: true)
             Card {
                 VStack(spacing: 14) {
                     if type.tracksWeight {

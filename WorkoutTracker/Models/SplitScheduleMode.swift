@@ -1,31 +1,31 @@
 import Foundation
 
 enum SplitScheduleMode: String, Codable, CaseIterable, Identifiable {
-    case asynchronous   // advance one workout each time you finish a session
     case scheduled      // each weekday is bound to a specific workout (or rest)
+    case asynchronous   // advance one workout each time you finish a session
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .asynchronous: return "Asynchronous"
-        case .scheduled:    return "Set schedule"
+        case .scheduled:    return "Weekly schedule"
+        case .asynchronous: return "Rotation"
         }
     }
 
     var shortLabel: String {
         switch self {
-        case .asynchronous: return "Async"
-        case .scheduled:    return "Schedule"
+        case .scheduled:    return "Weekly"
+        case .asynchronous: return "Rotation"
         }
     }
 
     var explainer: String {
         switch self {
-        case .asynchronous:
-            return "Plays workouts in order. Advances by one after each completed session."
         case .scheduled:
-            return "Each day of the week is pinned to a specific workout (or rest)."
+            return "Pin each day of the week to a specific workout (or rest day). Best when your training days are consistent — like Monday is always legs."
+        case .asynchronous:
+            return "Keeps your workouts in a loop and just picks up wherever you left off. Finish a session and the next one in the list becomes “up next” — no calendar required, great when your week is unpredictable."
         }
     }
 }
