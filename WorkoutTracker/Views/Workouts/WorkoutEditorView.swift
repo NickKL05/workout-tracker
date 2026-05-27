@@ -8,7 +8,10 @@ struct WorkoutEditorView: View {
     var workout: Workout?
 
     @State private var name: String = ""
-    @State private var selected: [Exercise] = []
+    /// Transient editing rows. Each row owns its goal values for THIS workout
+    /// only. On save we either update the matching `WorkoutExercise` (when
+    /// `existingUUID` is set) or insert a new one.
+    @State private var rows: [EditableRow] = []
     @State private var showPicker = false
     @State private var showDeleteConfirm = false
 
@@ -59,11 +62,11 @@ struct WorkoutEditorView: View {
         .sheet(isPresented: $showPicker) {
             ExercisePickerView(
                 workoutName: name,
-                selectedUUIDs: Set(selected.map(\.uuid))
+                selectedUUIDs: Set(rows.map(\.exercise.uuid))
             ) { picked in
-                let existing = selected.map(\.uuid)
+                let existing = Set(rows.map(\.exercise.uuid))
                 let toAdd = picked.filter { !existing.contains($0.uuid) }
-                selected.append(contentsOf: toAdd)
+                rows.append(contentsOf: toAdd.map { EditableRow(exercise: $0) })
             }
             .preferredColorScheme(.dark)
         }
@@ -77,12 +80,12 @@ struct WorkoutEditorView: View {
     private var exercisesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Exercises")
-            if selected.isEmpty {
+            if rows.isEmpty {
                 emptyExercisesCard
             } else {
                 VStack(spacing: 10) {
-                    ForEach(Array(selected.enumerated()), id: \.element.uuid) { idx, ex in
-                        exerciseRow(ex: ex, idx: idx)
+                    ForEach(rows.indices, id: \.self) { idx in
+                        exerciseRow(idx: idx)
                     }
                 }
                 addExerciseButton
@@ -131,68 +134,123 @@ struct WorkoutEditorView: View {
         .secondaryButton()
     }
 
-    private func exerciseRow(ex: Exercise, idx: Int) -> some View {
-        Card(padding: 12) {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(ex.name)
-                        .font(.bodyBold)
-                        .foregroundStyle(Theme.textPrimary)
-                    Text(subtitle(for: ex))
-                        .font(.caption)
-                        .foregroundStyle(Theme.textSecondary)
+    private func exerciseRow(idx: Int) -> some View {
+        let row = rows[idx]
+        return Card(padding: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(row.exercise.name)
+                            .font(.bodyBold)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text(metaSubtitle(for: row.exercise))
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Button { move(idx, by: -1) } label: { Image(systemName: "chevron.up") }
+                            .frame(width: 32, height: 32)
+                            .disabled(idx == 0)
+                        Button { move(idx, by: 1) } label: { Image(systemName: "chevron.down") }
+                            .frame(width: 32, height: 32)
+                            .disabled(idx == rows.count - 1)
+                        Button(role: .destructive) {
+                            rows.remove(at: idx)
+                        } label: { Image(systemName: "xmark") }
+                            .frame(width: 32, height: 32)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 }
-                Spacer()
-                HStack(spacing: 4) {
-                    Button { move(idx, by: -1) } label: { Image(systemName: "chevron.up") }
-                        .frame(width: 32, height: 32)
-                        .disabled(idx == 0)
-                    Button { move(idx, by: 1) } label: { Image(systemName: "chevron.down") }
-                        .frame(width: 32, height: 32)
-                        .disabled(idx == selected.count - 1)
-                    Button(role: .destructive) {
-                        selected.remove(at: idx)
-                    } label: { Image(systemName: "xmark") }
-                        .frame(width: 32, height: 32)
-                        .foregroundStyle(Theme.textSecondary)
-                }
+                Divider().background(Theme.stroke)
+                goalEditors(for: idx)
             }
         }
     }
 
-    private func subtitle(for ex: Exercise) -> String {
-        switch ex.type {
-        case .weightReps:
-            return "\(ex.goalSets)×\(ex.goalReps)\(ex.isUnilateral ? " L/R" : "")"
-        case .weightTime:
-            return "\(ex.goalSets)×\(Format.duration(ex.goalDurationSeconds))"
-        case .cardio:
-            return "\(Format.duration(ex.goalDurationSeconds)) @ int \(ex.goalIntensity)"
+    @ViewBuilder
+    private func goalEditors(for idx: Int) -> some View {
+        let type = rows[idx].exercise.type
+        VStack(spacing: 10) {
+            if type == .weightReps || type == .weightTime {
+                StepperRow(label: "Sets", value: $rows[idx].goalSets, range: 1...20)
+            }
+            if type == .weightReps {
+                StepperRow(label: "Reps", value: $rows[idx].goalReps, range: 1...100)
+            }
+            if type == .weightTime || type == .cardio {
+                StepperRow(label: "Duration (sec)", value: $rows[idx].goalDurationSeconds, range: 5...7200, step: 5)
+            }
+            if type == .cardio {
+                StepperRow(label: "Intensity (1-10)", value: $rows[idx].goalIntensity, range: 1...10)
+            }
         }
+    }
+
+    private func metaSubtitle(for ex: Exercise) -> String {
+        var parts = [ex.equipment.displayName, ex.muscleGroup.displayName]
+        if ex.isUnilateral { parts.append("L/R") }
+        return parts.joined(separator: " • ")
     }
 
     private func move(_ idx: Int, by delta: Int) {
         let new = idx + delta
-        guard new >= 0, new < selected.count else { return }
-        selected.swapAt(idx, new)
+        guard new >= 0, new < rows.count else { return }
+        rows.swapAt(idx, new)
     }
 
     private func loadIfEditing() {
         guard let w = workout else { return }
         name = w.name
-        selected = w.orderedExercises
+        rows = w.orderedWorkoutExercises.map { EditableRow(workoutExercise: $0) }
     }
 
     private func save() {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        if let w = workout {
-            w.name = trimmed
-            w.setExercises(selected)
+
+        let target: Workout
+        if let existing = workout {
+            existing.name = trimmed
+            target = existing
         } else {
-            let new = Workout(name: trimmed, exercises: selected)
-            context.insert(new)
+            target = Workout(name: trimmed)
+            context.insert(target)
         }
+
+        let oldByUUID = Dictionary(uniqueKeysWithValues: target.workoutExercises.map { ($0.uuid, $0) })
+        var keptUUIDs = Set<UUID>()
+        var rebuilt: [WorkoutExercise] = []
+
+        for (idx, row) in rows.enumerated() {
+            if let existingID = row.existingUUID, let existingRow = oldByUUID[existingID] {
+                existingRow.orderIndex = idx
+                existingRow.goalSets = row.goalSets
+                existingRow.goalReps = row.goalReps
+                existingRow.goalDurationSeconds = row.goalDurationSeconds
+                existingRow.goalIntensity = row.goalIntensity
+                keptUUIDs.insert(existingID)
+                rebuilt.append(existingRow)
+            } else {
+                // Don't set the inverse here — the final
+                // `target.workoutExercises = rebuilt` assignment will do
+                // it, and SwiftData would otherwise add the row twice.
+                let we = WorkoutExercise(exercise: row.exercise, workout: nil, orderIndex: idx)
+                we.goalSets = row.goalSets
+                we.goalReps = row.goalReps
+                we.goalDurationSeconds = row.goalDurationSeconds
+                we.goalIntensity = row.goalIntensity
+                context.insert(we)
+                rebuilt.append(we)
+            }
+        }
+
+        // Tombstone any rows that the user removed in this edit.
+        for (uuid, row) in oldByUUID where !keptUUIDs.contains(uuid) {
+            context.delete(row)
+        }
+
+        target.workoutExercises = rebuilt
         try? context.save()
         dismiss()
     }
@@ -202,6 +260,50 @@ struct WorkoutEditorView: View {
         context.delete(w)
         try? context.save()
         dismiss()
+    }
+}
+
+// MARK: - Editable row (transient pre-save state)
+
+struct EditableRow: Identifiable {
+    let id = UUID()
+    let exercise: Exercise
+    var goalSets: Int
+    var goalReps: Int
+    var goalDurationSeconds: Int
+    var goalIntensity: Int
+    /// UUID of the existing WorkoutExercise this row maps to. Nil for
+    /// freshly-picked rows.
+    var existingUUID: UUID?
+
+    init(exercise: Exercise) {
+        self.exercise = exercise
+        self.goalSets = exercise.goalSets
+        self.goalReps = exercise.goalReps
+        self.goalDurationSeconds = exercise.goalDurationSeconds
+        self.goalIntensity = exercise.goalIntensity
+        self.existingUUID = nil
+    }
+
+    init(workoutExercise: WorkoutExercise) {
+        // If the underlying exercise has been deleted we drop this row;
+        // callers filter out nils.
+        guard let ex = workoutExercise.exercise else {
+            // Defensive default - effectively unreachable in practice.
+            self.exercise = Exercise(name: "")
+            self.goalSets = workoutExercise.goalSets
+            self.goalReps = workoutExercise.goalReps
+            self.goalDurationSeconds = workoutExercise.goalDurationSeconds
+            self.goalIntensity = workoutExercise.goalIntensity
+            self.existingUUID = workoutExercise.uuid
+            return
+        }
+        self.exercise = ex
+        self.goalSets = workoutExercise.goalSets
+        self.goalReps = workoutExercise.goalReps
+        self.goalDurationSeconds = workoutExercise.goalDurationSeconds
+        self.goalIntensity = workoutExercise.goalIntensity
+        self.existingUUID = workoutExercise.uuid
     }
 }
 
@@ -430,11 +532,10 @@ struct ExercisePickerView: View {
 
     private func subtitle(for ex: Exercise) -> String {
         let equip = ex.equipment.displayName
-        switch ex.type {
-        case .weightReps: return "\(equip) • \(ex.goalSets)×\(ex.goalReps)\(ex.isUnilateral ? " L/R" : "")"
-        case .weightTime: return "\(equip) • \(ex.goalSets)×\(Format.duration(ex.goalDurationSeconds))"
-        case .cardio:     return "\(equip) • \(Format.duration(ex.goalDurationSeconds))"
-        }
+        let muscle = ex.muscleGroup.displayName
+        var parts = [equip, muscle]
+        if ex.isUnilateral { parts.append("L/R") }
+        return parts.joined(separator: " • ")
     }
 
     private var bottomBar: some View {

@@ -17,8 +17,9 @@ final class WorkoutSession {
         self.workoutName = workout.name
         self.split = split
         self.startedAt = Date()
-        // Seed exerciseLogs from the workout's exercises so logging UI has a row per exercise.
-        self.exerciseLogs = workout.orderedExercises.map { ExerciseLog(exercise: $0) }
+        // Build one ExerciseLog per WorkoutExercise so the session inherits
+        // the per-workout goal values, not the global Exercise defaults.
+        self.exerciseLogs = workout.orderedWorkoutExercises.map { ExerciseLog(workoutExercise: $0) }
     }
 
     var isFinished: Bool { endedAt != nil }

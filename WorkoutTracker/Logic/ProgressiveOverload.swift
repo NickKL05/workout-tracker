@@ -14,22 +14,23 @@ struct OverloadSuggestion {
 }
 
 enum ProgressiveOverload {
-    /// Compute a target for the upcoming session based on the previous session.
-    static func suggest(for exercise: Exercise, previous: ExerciseLog?) -> OverloadSuggestion {
+    /// Compute a target for the current session based on the previous one.
+    /// Goals come from the live `current` log (session-editable). Increment
+    /// sizes come from the underlying Exercise (physics of the equipment).
+    static func suggest(current: ExerciseLog, previous: ExerciseLog?, exercise: Exercise) -> OverloadSuggestion {
         guard let prev = previous else {
-            // First time doing this exercise: anchor on goals only.
-            return baseline(for: exercise)
+            return baseline(for: current)
         }
 
         let metGoal = prev.hitGoalAcrossAllSets
 
-        switch exercise.type {
+        switch current.exerciseType {
         case .weightReps:
             let baseWeight = prev.topWeight
             if metGoal {
                 let newW = baseWeight + exercise.weightIncrement
                 return OverloadSuggestion(
-                    summary: "Hit goal last time. Try \(format(newW)) lbs × \(exercise.goalReps) reps",
+                    summary: "Hit goal last time. Try \(format(newW)) lbs × \(current.goalReps) reps",
                     suggestedWeight: newW,
                     suggestedDurationSeconds: nil,
                     suggestedIntensity: nil,
@@ -37,7 +38,7 @@ enum ProgressiveOverload {
                 )
             } else {
                 return OverloadSuggestion(
-                    summary: "Last time: \(format(baseWeight)) lbs. Push for \(exercise.goalSets)×\(exercise.goalReps)",
+                    summary: "Last time: \(format(baseWeight)) lbs. Push for \(current.goalSets)×\(current.goalReps)",
                     suggestedWeight: baseWeight,
                     suggestedDurationSeconds: nil,
                     suggestedIntensity: nil,
@@ -51,17 +52,17 @@ enum ProgressiveOverload {
             if metGoal {
                 let newW = baseWeight + exercise.weightIncrement
                 return OverloadSuggestion(
-                    summary: "Hit goal. Try \(format(newW)) lbs × \(formatDuration(exercise.goalDurationSeconds))",
+                    summary: "Hit goal. Try \(format(newW)) lbs × \(formatDuration(current.goalDurationSeconds))",
                     suggestedWeight: newW,
-                    suggestedDurationSeconds: exercise.goalDurationSeconds,
+                    suggestedDurationSeconds: current.goalDurationSeconds,
                     suggestedIntensity: nil,
                     metGoalPreviously: true
                 )
             } else {
                 return OverloadSuggestion(
-                    summary: "Last: \(format(baseWeight)) lbs × \(formatDuration(lastDuration)). Aim for \(formatDuration(exercise.goalDurationSeconds))",
+                    summary: "Last: \(format(baseWeight)) lbs × \(formatDuration(lastDuration)). Aim for \(formatDuration(current.goalDurationSeconds))",
                     suggestedWeight: baseWeight,
-                    suggestedDurationSeconds: exercise.goalDurationSeconds,
+                    suggestedDurationSeconds: current.goalDurationSeconds,
                     suggestedIntensity: nil,
                     metGoalPreviously: false
                 )
@@ -71,13 +72,12 @@ enum ProgressiveOverload {
             let lastDuration = prev.orderedSets.map { $0.durationSeconds }.max() ?? 0
             let lastIntensity = prev.orderedSets.map { $0.intensity }.max() ?? 0
             if metGoal {
-                // Prefer bumping intensity; if at max (10), bump duration.
                 if lastIntensity < 10 {
                     let newI = min(10, lastIntensity + exercise.intensityIncrement)
                     return OverloadSuggestion(
-                        summary: "Hit goal. Try intensity \(newI) for \(formatDuration(exercise.goalDurationSeconds))",
+                        summary: "Hit goal. Try intensity \(newI) for \(formatDuration(current.goalDurationSeconds))",
                         suggestedWeight: nil,
-                        suggestedDurationSeconds: exercise.goalDurationSeconds,
+                        suggestedDurationSeconds: current.goalDurationSeconds,
                         suggestedIntensity: newI,
                         metGoalPreviously: true
                     )
@@ -95,29 +95,29 @@ enum ProgressiveOverload {
                 return OverloadSuggestion(
                     summary: "Last: \(formatDuration(lastDuration)) @ int \(lastIntensity). Aim for goal",
                     suggestedWeight: nil,
-                    suggestedDurationSeconds: exercise.goalDurationSeconds,
-                    suggestedIntensity: exercise.goalIntensity,
+                    suggestedDurationSeconds: current.goalDurationSeconds,
+                    suggestedIntensity: current.goalIntensity,
                     metGoalPreviously: false
                 )
             }
         }
     }
 
-    private static func baseline(for ex: Exercise) -> OverloadSuggestion {
+    private static func baseline(for log: ExerciseLog) -> OverloadSuggestion {
         let summary: String
-        switch ex.type {
+        switch log.exerciseType {
         case .weightReps:
-            summary = "Goal: \(ex.goalSets)×\(ex.goalReps)"
+            summary = "Goal: \(log.goalSets)×\(log.goalReps)"
         case .weightTime:
-            summary = "Goal: \(ex.goalSets)×\(formatDuration(ex.goalDurationSeconds))"
+            summary = "Goal: \(log.goalSets)×\(formatDuration(log.goalDurationSeconds))"
         case .cardio:
-            summary = "Goal: \(formatDuration(ex.goalDurationSeconds)) @ intensity \(ex.goalIntensity)"
+            summary = "Goal: \(formatDuration(log.goalDurationSeconds)) @ intensity \(log.goalIntensity)"
         }
         return OverloadSuggestion(
             summary: summary,
             suggestedWeight: nil,
-            suggestedDurationSeconds: ex.type == .weightReps ? nil : ex.goalDurationSeconds,
-            suggestedIntensity: ex.type == .cardio ? ex.goalIntensity : nil,
+            suggestedDurationSeconds: log.exerciseType == .weightReps ? nil : log.goalDurationSeconds,
+            suggestedIntensity: log.exerciseType == .cardio ? log.goalIntensity : nil,
             metGoalPreviously: false
         )
     }

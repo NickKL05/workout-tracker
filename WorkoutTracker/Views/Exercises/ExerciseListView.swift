@@ -171,13 +171,12 @@ struct ExerciseListView: View {
 
     private func subtitle(for ex: Exercise) -> String {
         let equip = ex.equipment.displayName
+        let muscle = ex.muscleGroup.displayName
         switch ex.type {
-        case .weightReps:
-            return "\(equip) • \(ex.goalSets)×\(ex.goalReps) • +\(Format.weight(ex.weightIncrement)) lbs"
-        case .weightTime:
-            return "\(equip) • \(ex.goalSets)×\(Format.duration(ex.goalDurationSeconds))"
+        case .weightReps, .weightTime:
+            return "\(equip) • \(muscle) • +\(Format.weight(ex.weightIncrement)) lbs default"
         case .cardio:
-            return "\(equip) • \(Format.duration(ex.goalDurationSeconds)) @ int \(ex.goalIntensity)"
+            return "\(equip) • \(muscle)"
         }
     }
 }
