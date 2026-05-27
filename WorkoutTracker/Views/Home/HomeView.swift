@@ -13,6 +13,8 @@ struct HomeView: View {
     @State private var showHelp = false
     @State private var showSettings = false
 
+    @EnvironmentObject private var appleSignIn: AppleSignInController
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -50,6 +52,7 @@ struct HomeView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView()
+                    .environmentObject(appleSignIn)
                     .preferredColorScheme(.dark)
             }
         }
@@ -325,5 +328,6 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
+        .environmentObject(AppleSignInController())
         .modelContainer(for: [Exercise.self, Workout.self, Split.self, WorkoutSession.self, ExerciseLog.self, SetLog.self], inMemory: true)
 }

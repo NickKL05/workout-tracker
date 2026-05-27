@@ -4,7 +4,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var appleSignIn = AppleSignInController()
+    @EnvironmentObject private var appleSignIn: AppleSignInController
 
     @AppStorage("Settings.syncToAppleHealth") private var syncToAppleHealth = false
     @State private var healthError: String?
