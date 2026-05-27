@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDisplayName</key>
-    <string>Workout</string>
+    <string>SplitMax</string>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
     <key>UIUserInterfaceStyle</key>
@@ -17,5 +17,9 @@
         <key>UIColorName</key>
         <string></string>
     </dict>
+    <key>NSHealthShareUsageDescription</key>
+    <string>SplitMax does not read your health data.</string>
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>SplitMax can save your finished sessions to Apple Health so other apps like Whoop, Strava, and Fitness can read them.</string>
 </dict>
 </plist>

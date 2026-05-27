@@ -13,6 +13,8 @@ struct ActiveWorkoutView: View {
     @State private var showAbortConfirm = false
     @State private var expandedLogID: PersistentIdentifier?
 
+    @AppStorage("Settings.syncToAppleHealth") private var syncToAppleHealth = false
+
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -144,6 +146,11 @@ struct ActiveWorkoutView: View {
             split.advance()
         }
         try? context.save()
+        if syncToAppleHealth, let summary = HealthKitManager.summary(for: session) {
+            Task {
+                try? await HealthKitManager.shared.save(summary)
+            }
+        }
         dismiss()
     }
 

@@ -11,6 +11,7 @@ struct HomeView: View {
     @State private var pendingSession: WorkoutSession?
     @State private var showStartConfirm: Workout?
     @State private var showHelp = false
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
@@ -47,6 +48,10 @@ struct HomeView: View {
                 HelpView()
                     .preferredColorScheme(.dark)
             }
+            .sheet(isPresented: $showSettings) {
+                SettingsView()
+                    .preferredColorScheme(.dark)
+            }
         }
     }
 
@@ -62,20 +67,29 @@ struct HomeView: View {
                     .foregroundStyle(Theme.textPrimary)
             }
             Spacer()
-            Button {
-                showHelp = true
-            } label: {
-                Image(systemName: "questionmark.circle")
-                    .font(.system(size: 22, weight: .regular))
-                    .foregroundStyle(Theme.textSecondary)
-                    .frame(width: 44, height: 44)
-                    .background(Theme.surface)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Theme.stroke, lineWidth: 0.5))
+            HStack(spacing: 8) {
+                headerIconButton(systemName: "questionmark.circle", label: "Help and getting started") {
+                    showHelp = true
+                }
+                headerIconButton(systemName: "gearshape", label: "Settings") {
+                    showSettings = true
+                }
             }
-            .accessibilityLabel("Help and getting started")
         }
         .padding(.top, 12)
+    }
+
+    private func headerIconButton(systemName: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 20, weight: .regular))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(width: 44, height: 44)
+                .background(Theme.surface)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(Theme.stroke, lineWidth: 0.5))
+        }
+        .accessibilityLabel(label)
     }
 
     // MARK: - Quick start

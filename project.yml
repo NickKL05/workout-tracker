@@ -26,6 +26,15 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         CFBundleDisplayName: SplitMax
+        NSHealthShareUsageDescription: "SplitMax does not read your health data."
+        NSHealthUpdateUsageDescription: "SplitMax can save your finished sessions to Apple Health so other apps like Whoop, Strava, and Fitness can read them."
+    entitlements:
+      path: WorkoutTracker/WorkoutTracker.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nickkl.workouttracker
