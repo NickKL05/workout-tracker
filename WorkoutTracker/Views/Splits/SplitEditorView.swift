@@ -18,6 +18,7 @@ struct SplitEditorView: View {
     @State private var showDeleteConfirm = false
 
     @Query(sort: \Workout.createdAt, order: .reverse) private var allWorkouts: [Workout]
+    @Query(sort: \Exercise.name) private var allExercises: [Exercise]
     @Query(filter: #Predicate<Split> { $0.isActive == true }) private var activeSplits: [Split]
 
     private var isNew: Bool { split == nil }
@@ -41,6 +42,8 @@ struct SplitEditorView: View {
                     } else {
                         weeklyScheduleSection
                     }
+
+                    coverageSection
 
                     Button { save() } label: {
                         Text(isNew ? "Create split" : "Save changes")
@@ -206,6 +209,98 @@ struct SplitEditorView: View {
                             Text(selected[safe: currentIndex]?.name ?? "Rest")
                                 .font(.bodyBold)
                                 .foregroundStyle(Theme.textPrimary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var coverageSection: some View {
+        let report = SplitCoverage.report(for: selected)
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Muscle coverage")
+            if selected.isEmpty {
+                Card {
+                    Text("Add workouts above to see which muscle groups your split is hitting.")
+                        .font(.bodyMd)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+            } else if report.isComplete {
+                Card {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(Theme.accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Balanced split")
+                                .font(.bodyBold)
+                                .foregroundStyle(Theme.textPrimary)
+                            Text("Every core muscle group is trained at least once.")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                    }
+                }
+            } else {
+                missedMusclesCard(report: report)
+            }
+        }
+    }
+
+    private func missedMusclesCard(report: SplitCoverage.Report) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Theme.textPrimary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(report.missed.count) muscle group\(report.missed.count == 1 ? "" : "s") not trained")
+                            .font(.bodyBold)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("Consider adding one of these to a workout in this split.")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    Spacer()
+                }
+                ForEach(report.missed, id: \.self) { group in
+                    missedGroupBlock(group: group)
+                    if group != report.missed.last {
+                        Divider().background(Theme.stroke)
+                    }
+                }
+            }
+        }
+    }
+
+    private func missedGroupBlock(group: MuscleGroup) -> some View {
+        let suggestions = SplitCoverage.suggestions(for: group, in: allExercises)
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(group.displayName.uppercased())
+                .font(.caption)
+                .tracking(1.2)
+                .foregroundStyle(Theme.textMuted)
+            if suggestions.isEmpty {
+                Text("No exercises in your library target this muscle. Add one from the Exercises tab.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textSecondary)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(suggestions, id: \.uuid) { ex in
+                        HStack(spacing: 6) {
+                            Image(systemName: "circle.fill")
+                                .font(.system(size: 4))
+                                .foregroundStyle(Theme.textMuted)
+                            Text(ex.name)
+                                .font(.bodyMd)
+                                .foregroundStyle(Theme.textPrimary)
+                            Text(ex.equipment.displayName)
+                                .font(.caption)
+                                .foregroundStyle(Theme.textMuted)
+                            Spacer()
                         }
                     }
                 }
