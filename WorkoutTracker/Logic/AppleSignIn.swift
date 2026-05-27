@@ -71,4 +71,44 @@ final class AppleSignInController: ObservableObject {
         email = nil
         lastError = nil
     }
+
+    /// Ask Apple whether our stored credential is still valid. If the user
+    /// revoked the app from their Apple ID settings, force a sign-out so
+    /// the gate reappears. Treats `.notFound` as revoked too (the most
+    /// common outcome after a wipe). Network failures leave the cached
+    /// session alone so offline launches still work.
+    func revalidate() async {
+        guard let id = userIdentifier else { return }
+        let provider = ASAuthorizationAppleIDProvider()
+        do {
+            let state = try await provider.credentialState(forUserID: id)
+            switch state {
+            case .authorized:
+                break
+            case .revoked, .notFound:
+                await MainActor.run { self.signOut() }
+            case .transferred:
+                break
+            @unknown default:
+                break
+            }
+        } catch {
+            // Network or system error: keep the user signed in.
+        }
+    }
+}
+
+extension ASAuthorizationAppleIDProvider {
+    /// Async wrapper around the completion-handler credentialState API.
+    func credentialState(forUserID userID: String) async throws -> ASAuthorizationAppleIDProvider.CredentialState {
+        try await withCheckedThrowingContinuation { continuation in
+            self.getCredentialState(forUserID: userID) { state, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: state)
+                }
+            }
+        }
+    }
 }
