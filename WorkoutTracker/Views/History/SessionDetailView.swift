@@ -135,7 +135,7 @@ struct SessionDetailView: View {
         case .weightTime:
             return "\(Format.weight(s.weight)) lbs × \(Format.duration(s.durationSeconds))"
         case .cardio:
-            return "\(Format.duration(s.durationSeconds)) @ int \(s.intensity)"
+            return "\(Format.cardioDuration(s.durationSeconds)) @ int \(s.intensity)"
         }
     }
 }

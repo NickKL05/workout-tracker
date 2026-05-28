@@ -178,10 +178,18 @@ struct WorkoutEditorView: View {
             if type == .weightReps {
                 StepperRow(label: "Reps", value: $rows[idx].goalReps, range: 1...100)
             }
-            if type == .weightTime || type == .cardio {
+            if type == .weightTime {
                 StepperRow(label: "Duration (sec)", value: $rows[idx].goalDurationSeconds, range: 5...7200, step: 5)
             }
             if type == .cardio {
+                StepperRow(
+                    label: "Duration (min)",
+                    value: Binding(
+                        get: { rows[idx].goalDurationSeconds / 60 },
+                        set: { rows[idx].goalDurationSeconds = $0 * 60 }
+                    ),
+                    range: 1...180
+                )
                 StepperRow(label: "Intensity (1-10)", value: $rows[idx].goalIntensity, range: 1...10)
             }
         }

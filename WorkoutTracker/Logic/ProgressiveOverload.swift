@@ -75,7 +75,7 @@ enum ProgressiveOverload {
                 if lastIntensity < 10 {
                     let newI = min(10, lastIntensity + exercise.intensityIncrement)
                     return OverloadSuggestion(
-                        summary: "Hit goal. Try intensity \(newI) for \(formatDuration(current.goalDurationSeconds))",
+                        summary: "Hit goal. Try intensity \(newI) for \(Format.cardioDuration(current.goalDurationSeconds))",
                         suggestedWeight: nil,
                         suggestedDurationSeconds: current.goalDurationSeconds,
                         suggestedIntensity: newI,
@@ -84,7 +84,7 @@ enum ProgressiveOverload {
                 } else {
                     let newD = lastDuration + exercise.durationIncrementSeconds
                     return OverloadSuggestion(
-                        summary: "Maxed intensity. Try \(formatDuration(newD)) at intensity 10",
+                        summary: "Maxed intensity. Try \(Format.cardioDuration(newD)) at intensity 10",
                         suggestedWeight: nil,
                         suggestedDurationSeconds: newD,
                         suggestedIntensity: 10,
@@ -93,7 +93,7 @@ enum ProgressiveOverload {
                 }
             } else {
                 return OverloadSuggestion(
-                    summary: "Last: \(formatDuration(lastDuration)) @ int \(lastIntensity). Aim for goal",
+                    summary: "Last: \(Format.cardioDuration(lastDuration)) @ int \(lastIntensity). Aim for goal",
                     suggestedWeight: nil,
                     suggestedDurationSeconds: current.goalDurationSeconds,
                     suggestedIntensity: current.goalIntensity,
@@ -111,7 +111,7 @@ enum ProgressiveOverload {
         case .weightTime:
             summary = "Goal: \(log.goalSets)×\(formatDuration(log.goalDurationSeconds))"
         case .cardio:
-            summary = "Goal: \(formatDuration(log.goalDurationSeconds)) @ intensity \(log.goalIntensity)"
+            summary = "Goal: \(Format.cardioDuration(log.goalDurationSeconds)) @ intensity \(log.goalIntensity)"
         }
         return OverloadSuggestion(
             summary: summary,

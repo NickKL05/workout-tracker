@@ -105,7 +105,7 @@ struct ExerciseLoggerView: View {
         switch log.exerciseType {
         case .weightReps: return "Goal: \(log.goalSets)×\(log.goalReps)"
         case .weightTime: return "Goal: \(log.goalSets)×\(Format.duration(log.goalDurationSeconds))"
-        case .cardio:     return "Goal: \(Format.duration(log.goalDurationSeconds)) @ int \(log.goalIntensity)"
+        case .cardio:     return "Goal: \(Format.cardioDuration(log.goalDurationSeconds)) @ int \(log.goalIntensity)"
         }
     }
 
@@ -219,7 +219,7 @@ struct ExerciseLoggerView: View {
         case .weightTime:
             return "\(Format.weight(s.weight)) lbs × \(Format.duration(s.durationSeconds))"
         case .cardio:
-            return "\(Format.duration(s.durationSeconds)) @ int \(s.intensity)"
+            return "\(Format.cardioDuration(s.durationSeconds)) @ int \(s.intensity)"
         }
     }
 
@@ -286,10 +286,18 @@ struct SessionGoalEditorSheet: View {
                                 if log.exerciseType == .weightReps {
                                     StepperRow(label: "Reps", value: $log.goalReps, range: 1...100)
                                 }
-                                if log.exerciseType == .weightTime || log.exerciseType == .cardio {
+                                if log.exerciseType == .weightTime {
                                     StepperRow(label: "Duration (sec)", value: $log.goalDurationSeconds, range: 5...7200, step: 5)
                                 }
                                 if log.exerciseType == .cardio {
+                                    StepperRow(
+                                        label: "Duration (min)",
+                                        value: Binding(
+                                            get: { log.goalDurationSeconds / 60 },
+                                            set: { log.goalDurationSeconds = $0 * 60 }
+                                        ),
+                                        range: 1...180
+                                    )
                                     StepperRow(label: "Intensity (1-10)", value: $log.goalIntensity, range: 1...10)
                                 }
                             }
