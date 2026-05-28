@@ -168,8 +168,18 @@ struct ExerciseEditorView: View {
                     if type.tracksReps {
                         StepperRow(label: "Reps", value: $goalReps, range: 1...100)
                     }
-                    if type.tracksTime {
+                    if type == .weightTime {
                         StepperRow(label: "Duration (sec)", value: $goalDurationSeconds, range: 5...7200, step: 5)
+                    }
+                    if type == .cardio {
+                        StepperRow(
+                            label: "Duration (min)",
+                            value: Binding(
+                                get: { goalDurationSeconds / 60 },
+                                set: { goalDurationSeconds = $0 * 60 }
+                            ),
+                            range: 1...180
+                        )
                     }
                     if type.tracksIntensity {
                         StepperRow(label: "Intensity (1-10)", value: $goalIntensity, range: 1...10)

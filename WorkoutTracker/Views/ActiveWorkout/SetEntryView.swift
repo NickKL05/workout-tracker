@@ -71,10 +71,16 @@ struct SetEntryView: View {
                     ), keyboard: .numberPad, width: 56)
                 }
             }
-            if type.tracksTime {
+            if type == .weightTime {
                 numericField(label: "sec", value: Binding(
                     get: { String(set.durationSeconds) },
                     set: { set.durationSeconds = parseInt($0) }
+                ), keyboard: .numberPad, width: 60)
+            }
+            if type == .cardio {
+                numericField(label: "min", value: Binding(
+                    get: { String(set.durationSeconds / 60) },
+                    set: { set.durationSeconds = parseInt($0) * 60 }
                 ), keyboard: .numberPad, width: 60)
             }
             if type.tracksIntensity {

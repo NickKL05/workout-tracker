@@ -74,7 +74,7 @@ struct ExerciseProgressionView: View {
             ]
         case .cardio:
             return [
-                ProgressionSeries(title: "Longest session", unit: "", style: .duration, points: logs.compactMap { date, log in
+                ProgressionSeries(title: "Longest session", unit: "", style: .cardioDuration, points: logs.compactMap { date, log in
                     let d = log.sets.filter(\.completed).map(\.durationSeconds).max() ?? 0
                     return d > 0 ? .init(date: date, value: Double(d)) : nil
                 }),
@@ -96,9 +96,10 @@ struct ProgressionPoint: Identifiable {
 }
 
 enum ProgressionValueStyle {
-    case decimal     // weight
-    case integer     // reps, intensity
-    case duration    // seconds → "1:30"
+    case decimal          // weight
+    case integer          // reps, intensity
+    case duration         // seconds → "1:30" (short timed holds)
+    case cardioDuration   // seconds → "30 min" (cardio sessions)
 }
 
 struct ProgressionSeries {
@@ -185,7 +186,8 @@ private struct ProgressionChart: View {
         switch series.style {
         case .decimal:  return Format.weight(value)
         case .integer:  return "\(Int(value.rounded()))"
-        case .duration: return Format.duration(Int(value.rounded()))
+        case .duration:       return Format.duration(Int(value.rounded()))
+        case .cardioDuration: return Format.cardioDuration(Int(value.rounded()))
         }
     }
 }

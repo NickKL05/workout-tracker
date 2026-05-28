@@ -115,7 +115,7 @@ struct QuickStartSheet: View {
         case .weightTime:
             return "\(we.goalSets)×\(Format.duration(we.goalDurationSeconds))"
         case .cardio:
-            return "\(Format.duration(we.goalDurationSeconds)) @ int \(we.goalIntensity)"
+            return "\(Format.cardioDuration(we.goalDurationSeconds)) @ int \(we.goalIntensity)"
         }
     }
 
