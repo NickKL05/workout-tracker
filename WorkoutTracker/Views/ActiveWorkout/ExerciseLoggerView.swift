@@ -1,41 +1,49 @@
 import SwiftUI
 import SwiftData
 
+/// One exercise on its own page inside the active workout. Streamlined:
+/// the title, the per-session goal, the set rows, and a compact "last time"
+/// reference. No accordions or charts — those live in the exercise editor.
 struct ExerciseLoggerView: View {
     @Bindable var log: ExerciseLog
     let previousLog: ExerciseLog?
-    @Binding var isExpanded: Bool
 
     @Environment(\.modelContext) private var context
-    @State private var showOverloadInfo = false
     @State private var showGoalEditor = false
 
     var body: some View {
-        Card(padding: 14) {
-            VStack(alignment: .leading, spacing: 12) {
-                header
-                if isExpanded {
-                    Divider().background(Theme.stroke)
-                    goalPill
-                    if let suggestion = suggestion {
-                        suggestionCard(suggestion)
-                    }
-                    setsList
-                    addSetButton
-                    if let previousLog {
-                        Divider().background(Theme.stroke)
-                        previousSection(previousLog)
-                    }
-                    if let ex = log.exercise {
-                        Divider().background(Theme.stroke)
-                        ExerciseProgressionView(exercise: ex)
-                    }
-                }
+        VStack(alignment: .leading, spacing: 16) {
+            titleRow
+            goalPill
+            setsList
+            addSetButton
+            if let previousLog {
+                previousSection(previousLog)
             }
         }
         .sheet(isPresented: $showGoalEditor) {
             SessionGoalEditorSheet(log: log)
                 .preferredColorScheme(.dark)
+        }
+    }
+
+    private var titleRow: some View {
+        HStack(spacing: 8) {
+            Text(log.exerciseName)
+                .font(.titleLg)
+                .foregroundStyle(Theme.textPrimary)
+            if log.isUnilateral {
+                Text("L/R")
+                    .font(.caption)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Theme.strokeStrong)
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+            }
+            Spacer()
+            Text("\(completedCount) / \(log.goalSets)")
+                .font(.mono)
+                .foregroundStyle(Theme.textPrimary)
         }
     }
 
@@ -54,49 +62,11 @@ struct ExerciseLoggerView: View {
                 Image(systemName: "pencil")
                     .font(.caption)
                     .foregroundStyle(Theme.textMuted)
-                Text("Edit for this session")
-                    .font(.caption)
-                    .foregroundStyle(Theme.textMuted)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(Theme.surfaceElevated)
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var header: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
-        } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(log.exerciseName)
-                            .font(.title)
-                            .foregroundStyle(Theme.textPrimary)
-                        if log.isUnilateral {
-                            Text("L/R")
-                                .font(.caption)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 1)
-                                .background(Theme.strokeStrong)
-                                .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
-                    }
-                    Text(headerSubtitle)
-                        .font(.caption)
-                        .foregroundStyle(Theme.textSecondary)
-                }
-                Spacer()
-                Text("\(completedCount) / \(log.goalSets)")
-                    .font(.mono)
-                    .foregroundStyle(Theme.textPrimary)
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                    .font(.caption)
-                    .foregroundStyle(Theme.textMuted)
-            }
         }
         .buttonStyle(.plain)
     }
@@ -111,62 +81,6 @@ struct ExerciseLoggerView: View {
 
     private var completedCount: Int {
         log.sets.filter { $0.completed }.count
-    }
-
-    private var suggestion: OverloadSuggestion? {
-        guard let ex = log.exercise else { return nil }
-        return ProgressiveOverload.suggest(current: log, previous: previousLog, exercise: ex)
-    }
-
-    private func suggestionCard(_ s: OverloadSuggestion) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: s.metGoalPreviously ? "arrow.up.right.circle.fill" : "target")
-                    .foregroundStyle(s.metGoalPreviously ? Theme.accent : Theme.textSecondary)
-                    .font(.system(size: 16, weight: .semibold))
-                    .padding(.top, 1)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(s.metGoalPreviously ? "TIME TO LEVEL UP" : "TODAY'S TARGET")
-                            .font(.caption)
-                            .tracking(1.1)
-                            .foregroundStyle(Theme.textMuted)
-                        Button { showOverloadInfo = true } label: {
-                            Image(systemName: "questionmark.circle")
-                                .font(.system(size: 12))
-                                .foregroundStyle(Theme.textMuted)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    Text(s.summary)
-                        .font(.bodyMd)
-                        .foregroundStyle(Theme.textPrimary)
-                }
-                Spacer()
-            }
-            if let w = s.suggestedWeight {
-                Button {
-                    applyToAll(weight: w)
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.down.to.line")
-                            .font(.caption)
-                        Text("Pre-fill \(Format.weight(w)) lbs on remaining sets")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textPrimary)
-                    }
-                }
-                .ghostButton()
-            }
-        }
-        .padding(12)
-        .background(Theme.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
-        .alert("Progressive overload", isPresented: $showOverloadInfo) {
-            Button("Got it", role: .cancel) {}
-        } message: {
-            Text("Each session this app looks at your last performance. If you hit every set at goal reps, it suggests bumping the weight by your configured step. Tap the pre-fill button to copy that weight onto every unfinished set so you don't have to type it.")
-        }
     }
 
     private var setsList: some View {
@@ -194,6 +108,7 @@ struct ExerciseLoggerView: View {
 
     private func previousSection(_ prev: ExerciseLog) -> some View {
         VStack(alignment: .leading, spacing: 8) {
+            Divider().background(Theme.stroke)
             Text("LAST TIME")
                 .font(.caption)
                 .tracking(1.2)
@@ -226,7 +141,7 @@ struct ExerciseLoggerView: View {
     private func addSet() {
         let next = (log.sets.map(\.setNumber).max() ?? 0) + 1
         let s = SetLog(setNumber: next)
-        // Pre-fill from prior set in this session for fast logging
+        // Pre-fill from prior set in this session for fast logging.
         if let last = log.orderedSets.last {
             s.weight = last.weight
             s.reps = last.reps
@@ -234,10 +149,6 @@ struct ExerciseLoggerView: View {
             s.rightReps = last.rightReps
             s.durationSeconds = last.durationSeconds
             s.intensity = last.intensity
-        } else if let s2 = suggestion {
-            if let w = s2.suggestedWeight { s.weight = w }
-            if let d = s2.suggestedDurationSeconds { s.durationSeconds = d }
-            if let i = s2.suggestedIntensity { s.intensity = i }
         }
         log.sets.append(s)
         try? context.save()
@@ -248,13 +159,6 @@ struct ExerciseLoggerView: View {
             log.sets.remove(at: idx)
         }
         context.delete(s)
-        try? context.save()
-    }
-
-    private func applyToAll(weight: Double) {
-        for s in log.sets where !s.completed {
-            s.weight = weight
-        }
         try? context.save()
     }
 }

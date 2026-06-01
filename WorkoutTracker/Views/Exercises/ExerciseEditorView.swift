@@ -79,11 +79,14 @@ struct ExerciseEditorView: View {
                 }
             }
         }
-        .confirmationDialog("Delete \(exercise?.name ?? "exercise")?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) { delete() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will remove it from any workouts that reference it.")
+        .appConfirm(
+            isPresented: $showDeleteConfirm,
+            title: "Delete \(exercise?.name ?? "exercise")?",
+            message: "This will remove it from any workouts that reference it.",
+            confirmTitle: "Delete",
+            destructive: true
+        ) {
+            delete()
         }
         .onAppear(perform: loadIfEditing)
     }

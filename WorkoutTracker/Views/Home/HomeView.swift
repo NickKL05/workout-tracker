@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var quickStartTarget: Workout?
     @State private var showHelp = false
     @State private var showSettings = false
+    @State private var showAddToSplit = false
 
     @EnvironmentObject private var appleSignIn: AppleSignInController
 
@@ -52,6 +53,17 @@ struct HomeView: View {
                 SettingsView()
                     .environmentObject(appleSignIn)
                     .preferredColorScheme(.dark)
+            }
+            .sheet(isPresented: $showAddToSplit) {
+                if let split = activeSplits.first {
+                    WorkoutPickerView(
+                        allWorkouts: workouts,
+                        selectedUUIDs: Set(split.orderedWorkouts.map(\.uuid))
+                    ) { picked in
+                        addWorkouts(picked, to: split)
+                    }
+                    .preferredColorScheme(.dark)
+                }
             }
         }
     }
@@ -112,6 +124,7 @@ struct HomeView: View {
             } else {
                 if let split = activeSplits.first {
                     splitHeroCard(split: split)
+                    addToSplitButton(split: split)
                 }
                 otherWorkoutsList(exclude: activeSplits.first?.nextWorkout)
             }
@@ -188,6 +201,32 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private func addToSplitButton(split: Split) -> some View {
+        Button { showAddToSplit = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("Add workout to \(split.name)")
+                    .font(.caption)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textMuted)
+            }
+            .foregroundStyle(Theme.textSecondary)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous)
+                    .stroke(Theme.stroke, lineWidth: 0.5)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func heroLabel(for split: Split) -> String {
@@ -330,6 +369,18 @@ struct HomeView: View {
         context.insert(session)
         try? context.save()
         pendingSession = session
+    }
+
+    /// Appends newly-picked workouts to the active split, preserving its
+    /// existing order and any weekday assignments.
+    private func addWorkouts(_ picked: [Workout], to split: Split) {
+        guard !picked.isEmpty else { return }
+        let existing = split.orderedWorkouts
+        let existingIDs = Set(existing.map(\.uuid))
+        let toAdd = picked.filter { !existingIDs.contains($0.uuid) }
+        guard !toAdd.isEmpty else { return }
+        split.setWorkouts(existing + toAdd)
+        try? context.save()
     }
 }
 
