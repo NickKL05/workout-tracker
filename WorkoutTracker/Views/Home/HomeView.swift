@@ -58,7 +58,7 @@ struct HomeView: View {
                 if let split = activeSplits.first {
                     WorkoutPickerView(
                         allWorkouts: workouts,
-                        selectedUUIDs: Set(split.orderedWorkouts.map(\.uuid))
+                        alreadyInSplitUUIDs: Set(split.orderedWorkouts.map(\.uuid))
                     ) { picked in
                         addWorkouts(picked, to: split)
                     }
