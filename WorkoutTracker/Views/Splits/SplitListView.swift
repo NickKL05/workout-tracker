@@ -33,7 +33,7 @@ struct SplitListView: View {
             EmptyStateView(
                 systemImage: "calendar",
                 title: "No splits",
-                subtitle: "Design a rotation of workouts and track your position.",
+                subtitle: "Group workouts into a weekly plan.",
                 actionTitle: "Create split",
                 action: { showCreate = true }
             )

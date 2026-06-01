@@ -177,11 +177,10 @@ struct SessionGoalEditorSheet: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("Editing only changes the targets for this session. The saved workout template keeps its original numbers.")
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Changes only apply to this session.")
                             .font(.caption)
                             .foregroundStyle(Theme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
                         Card {
                             VStack(spacing: 14) {
                                 if log.exerciseType != .cardio {

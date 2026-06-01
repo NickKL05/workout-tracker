@@ -103,18 +103,13 @@ struct ExerciseEditorView: View {
 
             if type == .weightReps {
                 Toggle(isOn: $isUnilateral) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Unilateral (L/R)")
-                            .font(.bodyMd)
-                            .foregroundStyle(Theme.textPrimary)
-                        Text("Track left and right separately")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textSecondary)
-                    }
+                    Text("Unilateral (L/R)")
+                        .font(.bodyMd)
+                        .foregroundStyle(Theme.textPrimary)
                 }
                 .tint(Theme.accent)
                 .padding(.horizontal, 14)
-                .frame(height: 60)
+                .frame(height: 56)
                 .background(Theme.surface)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
             }
@@ -160,11 +155,6 @@ struct ExerciseEditorView: View {
     private var goalsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Default sets & reps")
-            Text("Starting values when this exercise is added to a workout. Each workout keeps its own copy after that, so editing these later doesn't change existing workouts.")
-                .font(.caption)
-                .foregroundStyle(Theme.textSecondary)
-                .padding(.horizontal, 4)
-                .fixedSize(horizontal: false, vertical: true)
             Card {
                 VStack(spacing: 14) {
                     StepperRow(label: "Sets", value: $goalSets, range: 1...20)
@@ -195,12 +185,7 @@ struct ExerciseEditorView: View {
     @ViewBuilder
     private var overloadSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Progressive overload")
-            Text("When you hit every goal set, the app suggests bumping the load by this much next time.")
-                .font(.caption)
-                .foregroundStyle(Theme.textSecondary)
-                .padding(.horizontal, 4)
-                .fixedSize(horizontal: false, vertical: true)
+            SectionHeader(title: "Progressive overload step")
             Card {
                 VStack(spacing: 14) {
                     if type.tracksWeight {

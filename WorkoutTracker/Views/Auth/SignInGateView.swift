@@ -34,12 +34,9 @@ struct SignInGateView: View {
             Text("SplitMax")
                 .font(.displayLg)
                 .foregroundStyle(Theme.textPrimary)
-            Text("Plan your splits. Log every set. Watch the lines climb.")
+            Text("Plan. Lift. Track.")
                 .font(.bodyMd)
                 .foregroundStyle(Theme.textSecondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 32)
         }
     }
 
@@ -63,11 +60,9 @@ struct SignInGateView: View {
                     .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
             } else {
-                Text("Your Apple ID is the only identifier we keep. No password, no email lookup, nothing leaves the device.")
+                Text("Nothing leaves your device.")
                     .font(.caption)
                     .foregroundStyle(Theme.textMuted)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }

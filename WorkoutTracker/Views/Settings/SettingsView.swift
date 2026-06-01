@@ -47,24 +47,14 @@ struct SettingsView: View {
                     signedOutBlock
                 }
             }
-            Text("Signing in stores a stable identifier on this device only. We don't run a server today; this just keeps your slot warm for future cloud sync.")
-                .font(.caption)
-                .foregroundStyle(Theme.textSecondary)
-                .padding(.horizontal, 4)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private var signedOutBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Not signed in")
-                    .font(.title)
-                    .foregroundStyle(Theme.textPrimary)
-                Text("Tap below to sign in with your Apple ID.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.textSecondary)
-            }
+            Text("Not signed in")
+                .font(.title)
+                .foregroundStyle(Theme.textPrimary)
             SignInWithAppleButton(.signIn) { request in
                 request.requestedScopes = [.fullName, .email]
             } onCompletion: { result in
@@ -119,15 +109,9 @@ struct SettingsView: View {
             Card {
                 VStack(alignment: .leading, spacing: 14) {
                     Toggle(isOn: $syncToAppleHealth) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Save sessions to Apple Health")
-                                .font(.bodyMd)
-                                .foregroundStyle(Theme.textPrimary)
-                            Text("Each finished workout is written as an Apple Health workout. Whoop, Strava, and the Fitness app can read from there.")
-                                .font(.caption)
-                                .foregroundStyle(Theme.textSecondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                        Text("Save sessions to Apple Health")
+                            .font(.bodyMd)
+                            .foregroundStyle(Theme.textPrimary)
                     }
                     .tint(Theme.accent)
                     .disabled(requestingHealthAuth || !HealthKitManager.shared.isHealthDataAvailable)

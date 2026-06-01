@@ -75,10 +75,9 @@ struct SplitEditorView: View {
             }
         }
         .sheet(isPresented: $showPicker) {
-            WorkoutPickerView(allWorkouts: allWorkouts, selectedUUIDs: Set(selected.map(\.uuid))) { picked in
-                let existing = selected.map(\.uuid)
-                let toAdd = picked.filter { !existing.contains($0.uuid) }
-                selected.append(contentsOf: toAdd)
+            WorkoutPickerView(allWorkouts: allWorkouts, alreadyInSplitUUIDs: Set(selected.map(\.uuid))) { picked in
+                // Duplicates are intentional. Just append in tap order.
+                selected.append(contentsOf: picked)
             }
             .preferredColorScheme(.dark)
         }
@@ -96,25 +95,20 @@ struct SplitEditorView: View {
 
     private var activeToggle: some View {
         Toggle(isOn: $isActive) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Active split")
-                    .font(.bodyMd)
-                    .foregroundStyle(Theme.textPrimary)
-                Text("Shows on the home screen as your next workout.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.textSecondary)
-            }
+            Text("Active split")
+                .font(.bodyMd)
+                .foregroundStyle(Theme.textPrimary)
         }
         .tint(Theme.accent)
         .padding(.horizontal, 14)
-        .frame(minHeight: 64)
+        .frame(minHeight: 56)
         .background(Theme.surface)
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
     }
 
     private var modeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "How does this split work?")
+            SectionHeader(title: "Schedule mode")
             Picker("", selection: $scheduleMode) {
                 ForEach(SplitScheduleMode.allCases) { m in
                     Text(m.shortLabel).tag(m)
@@ -152,8 +146,10 @@ struct SplitEditorView: View {
                 }
             } else {
                 VStack(spacing: 10) {
-                    ForEach(Array(selected.enumerated()), id: \.element.uuid) { idx, w in
-                        rowItem(w: w, idx: idx)
+                    // Index-based id because the same workout can appear
+                    // multiple times in a single split.
+                    ForEach(selected.indices, id: \.self) { idx in
+                        rowItem(w: selected[idx], idx: idx)
                     }
                 }
             }
@@ -185,13 +181,21 @@ struct SplitEditorView: View {
                             .frame(width: 32, height: 32)
                             .disabled(idx == selected.count - 1)
                     }
+                    Button {
+                        selected.insert(w, at: idx + 1)
+                    } label: { Image(systemName: "plus.square.on.square") }
+                        .frame(width: 32, height: 32)
+                        .foregroundStyle(Theme.textSecondary)
                     Button(role: .destructive) {
                         let removed = selected[idx]
                         selected.remove(at: idx)
                         if currentIndex >= selected.count { currentIndex = max(0, selected.count - 1) }
-                        // Also clear any weekday assignments pointing at the removed workout.
-                        let removedID = removed.uuid.uuidString
-                        weeklyAssignments = weeklyAssignments.map { $0 == removedID ? "" : $0 }
+                        // Only clear weekday assignments if NO copies of this
+                        // workout remain in the split.
+                        if !selected.contains(where: { $0.uuid == removed.uuid }) {
+                            let removedID = removed.uuid.uuidString
+                            weeklyAssignments = weeklyAssignments.map { $0 == removedID ? "" : $0 }
+                        }
                     } label: { Image(systemName: "xmark") }
                         .frame(width: 32, height: 32)
                         .foregroundStyle(Theme.textSecondary)
@@ -458,11 +462,13 @@ extension Collection {
 
 struct WorkoutPickerView: View {
     let allWorkouts: [Workout]
-    let selectedUUIDs: Set<UUID>
+    let alreadyInSplitUUIDs: Set<UUID>
     let onPicked: ([Workout]) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @State private var picking: Set<UUID> = []
+    /// Ordered by tap sequence so picks land in the split in the order the
+    /// user chose them.
+    @State private var picking: [UUID] = []
 
     var body: some View {
         NavigationStack {
@@ -489,7 +495,8 @@ struct WorkoutPickerView: View {
                 VStack {
                     Spacer()
                     Button("Add \(picking.count) workout\(picking.count == 1 ? "" : "s")") {
-                        onPicked(allWorkouts.filter { picking.contains($0.uuid) })
+                        let byID = Dictionary(uniqueKeysWithValues: allWorkouts.map { ($0.uuid, $0) })
+                        onPicked(picking.compactMap { byID[$0] })
                         dismiss()
                     }
                     .primaryButton()
@@ -509,34 +516,49 @@ struct WorkoutPickerView: View {
     }
 
     private func rowButton(_ w: Workout) -> some View {
-        let isAlready = selectedUUIDs.contains(w.uuid)
-        let isPicking = picking.contains(w.uuid)
+        let isAlreadyInSplit = alreadyInSplitUUIDs.contains(w.uuid)
         return Button {
-            if isAlready { return }
-            if isPicking { picking.remove(w.uuid) } else { picking.insert(w.uuid) }
+            if let idx = picking.firstIndex(of: w.uuid) {
+                picking.remove(at: idx)
+            } else {
+                picking.append(w.uuid)
+            }
         } label: {
             Card(padding: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(w.name)
                             .font(.bodyBold)
-                            .foregroundStyle(isAlready ? Theme.textMuted : Theme.textPrimary)
-                        Text("\(w.orderedExercises.count) exercises")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textSecondary)
+                            .foregroundStyle(Theme.textPrimary)
+                        HStack(spacing: 6) {
+                            Text("\(w.orderedExercises.count) exercises")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                            if isAlreadyInSplit {
+                                Text("• in split")
+                                    .font(.caption)
+                                    .foregroundStyle(Theme.textMuted)
+                            }
+                        }
                     }
                     Spacer()
-                    if isAlready {
-                        Text("Added").font(.caption).foregroundStyle(Theme.textMuted)
+                    if let order = picking.firstIndex(of: w.uuid) {
+                        ZStack {
+                            Circle()
+                                .fill(Theme.accent)
+                                .frame(width: 26, height: 26)
+                            Text("\(order + 1)")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(Theme.accentOnAccent)
+                        }
                     } else {
-                        Image(systemName: isPicking ? "checkmark.circle.fill" : "circle")
+                        Image(systemName: "circle")
                             .font(.system(size: 22))
-                            .foregroundStyle(isPicking ? Theme.accent : Theme.textMuted)
+                            .foregroundStyle(Theme.textMuted)
                     }
                 }
             }
         }
         .buttonStyle(.plain)
-        .disabled(isAlready)
     }
 }

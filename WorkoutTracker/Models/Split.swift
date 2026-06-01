@@ -79,13 +79,22 @@ final class Split {
         return arr
     }
 
+    /// Replace the split's workouts. `list` is the desired display sequence
+    /// and MAY contain duplicates (e.g. two core days). The underlying
+    /// SwiftData relationship stores each unique Workout once; the sequence
+    /// (including duplicates) lives in `orderedWorkoutUUIDs`.
     func setWorkouts(_ list: [Workout]) {
-        self.workouts = list
+        var seen = Set<UUID>()
+        var unique: [Workout] = []
+        for w in list where seen.insert(w.uuid).inserted {
+            unique.append(w)
+        }
+        self.workouts = unique
         self.orderedWorkoutUUIDs = list.map(\.uuid)
         if currentIndex >= list.count { currentIndex = 0 }
 
         // Drop weekly assignments that no longer point at workouts in this split.
-        let validIDs = Set(list.map(\.uuid.uuidString))
+        let validIDs = Set(unique.map(\.uuid.uuidString))
         weeklyWorkoutUUIDStrings = paddedWeeklyAssignments().map { validIDs.contains($0) ? $0 : "" }
     }
 

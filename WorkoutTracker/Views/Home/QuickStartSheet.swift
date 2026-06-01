@@ -17,12 +17,11 @@ struct QuickStartSheet: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        summaryCard
+                    VStack(alignment: .leading, spacing: 14) {
                         exercisesSection
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 8)
+                    .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
 
@@ -44,22 +43,6 @@ struct QuickStartSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-    }
-
-    private var summaryCard: some View {
-        let count = workout.workoutExercises.count
-        return Card(elevated: true) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(count) EXERCISE\(count == 1 ? "" : "S")")
-                    .font(.caption)
-                    .tracking(1.2)
-                    .foregroundStyle(Theme.textMuted)
-                Text("Review the lineup, then start or tweak the workout.")
-                    .font(.bodyMd)
-                    .foregroundStyle(Theme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
     }
 
     private var exercisesSection: some View {

@@ -3,10 +3,10 @@ import SwiftUI
 struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.bodyBold)
+            .font(.system(size: 17, weight: .semibold, design: .default))
             .foregroundStyle(Theme.accentOnAccent)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .frame(height: 56)
             .background(Theme.accent.opacity(configuration.isPressed ? 0.82 : 1.0))
             .clipShape(RoundedRectangle(cornerRadius: Theme.radiusMd, style: .continuous))
     }
@@ -15,10 +15,10 @@ struct PrimaryButtonStyle: ButtonStyle {
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.bodyBold)
+            .font(.system(size: 17, weight: .semibold, design: .default))
             .foregroundStyle(Theme.textPrimary)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .frame(height: 56)
             .background(Theme.surface.opacity(configuration.isPressed ? 0.6 : 1.0))
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.radiusMd, style: .continuous)

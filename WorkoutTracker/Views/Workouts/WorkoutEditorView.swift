@@ -112,19 +112,14 @@ struct WorkoutEditorView: View {
                     ZStack {
                         Circle()
                             .fill(Theme.accent)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 48, height: 48)
                         Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .bold))
+                            .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(Theme.accentOnAccent)
                     }
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Add exercises")
-                            .font(.title)
-                            .foregroundStyle(Theme.textPrimary)
-                        Text("Pick from your library or create a new one")
-                            .font(.caption)
-                            .foregroundStyle(Theme.textSecondary)
-                    }
+                    Text("Add exercises")
+                        .font(.title)
+                        .foregroundStyle(Theme.textPrimary)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .font(.caption)
