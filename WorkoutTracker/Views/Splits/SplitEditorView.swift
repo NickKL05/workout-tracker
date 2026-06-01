@@ -211,9 +211,13 @@ struct SplitEditorView: View {
                 SectionHeader(title: "Current position")
                 Card {
                     VStack(spacing: 14) {
-                        StepperRow(label: "Day index", value: $currentIndex, range: 0...(max(0, selected.count - 1)))
+                        StepperRow(
+                            label: "Up next",
+                            value: oneBasedPositionBinding,
+                            range: 1...selected.count
+                        )
                         HStack {
-                            Text("Up next").font(.bodyMd).foregroundStyle(Theme.textSecondary)
+                            Text("Workout").font(.bodyMd).foregroundStyle(Theme.textSecondary)
                             Spacer()
                             Text(selected[safe: currentIndex]?.name ?? "Rest")
                                 .font(.bodyBold)
@@ -223,6 +227,15 @@ struct SplitEditorView: View {
                 }
             }
         }
+    }
+
+    /// The stored `currentIndex` is 0-based; gym-goers expect to see "1" for
+    /// the first workout, so the stepper reads and writes a 1-based value.
+    private var oneBasedPositionBinding: Binding<Int> {
+        Binding(
+            get: { currentIndex + 1 },
+            set: { currentIndex = $0 - 1 }
+        )
     }
 
     @ViewBuilder
@@ -517,48 +530,67 @@ struct WorkoutPickerView: View {
 
     private func rowButton(_ w: Workout) -> some View {
         let isAlreadyInSplit = alreadyInSplitUUIDs.contains(w.uuid)
-        return Button {
-            if let idx = picking.firstIndex(of: w.uuid) {
-                picking.remove(at: idx)
-            } else {
-                picking.append(w.uuid)
-            }
-        } label: {
-            Card(padding: 14) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(w.name)
-                            .font(.bodyBold)
-                            .foregroundStyle(Theme.textPrimary)
-                        HStack(spacing: 6) {
-                            Text("\(w.orderedExercises.count) exercises")
+        let count = picking.filter { $0 == w.uuid }.count
+        return Card(padding: 14) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(w.name)
+                        .font(.bodyBold)
+                        .foregroundStyle(Theme.textPrimary)
+                    HStack(spacing: 6) {
+                        Text("\(w.orderedExercises.count) exercises")
+                            .font(.caption)
+                            .foregroundStyle(Theme.textSecondary)
+                        if isAlreadyInSplit {
+                            Text("• in split")
                                 .font(.caption)
-                                .foregroundStyle(Theme.textSecondary)
-                            if isAlreadyInSplit {
-                                Text("• in split")
-                                    .font(.caption)
-                                    .foregroundStyle(Theme.textMuted)
-                            }
+                                .foregroundStyle(Theme.textMuted)
                         }
-                    }
-                    Spacer()
-                    if let order = picking.firstIndex(of: w.uuid) {
-                        ZStack {
-                            Circle()
-                                .fill(Theme.accent)
-                                .frame(width: 26, height: 26)
-                            Text("\(order + 1)")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Theme.accentOnAccent)
-                        }
-                    } else {
-                        Image(systemName: "circle")
-                            .font(.system(size: 22))
-                            .foregroundStyle(Theme.textMuted)
                     }
                 }
+                Spacer()
+                pickerControl(for: w, count: count)
             }
         }
-        .buttonStyle(.plain)
+    }
+
+    /// Count-based control. Tapping the plus adds another copy of the same
+    /// workout, so a split can hold e.g. two core days. The minus removes
+    /// the most recent copy.
+    @ViewBuilder
+    private func pickerControl(for w: Workout, count: Int) -> some View {
+        if count == 0 {
+            Button { picking.append(w.uuid) } label: {
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 26))
+                    .foregroundStyle(Theme.textMuted)
+            }
+            .buttonStyle(.plain)
+        } else {
+            HStack(spacing: 14) {
+                Button { removeOneOccurrence(of: w.uuid) } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .buttonStyle(.plain)
+                Text("×\(count)")
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.textPrimary)
+                    .frame(minWidth: 26)
+                Button { picking.append(w.uuid) } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 26))
+                        .foregroundStyle(Theme.accent)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func removeOneOccurrence(of uuid: UUID) {
+        if let lastIdx = picking.lastIndex(of: uuid) {
+            picking.remove(at: lastIdx)
+        }
     }
 }
