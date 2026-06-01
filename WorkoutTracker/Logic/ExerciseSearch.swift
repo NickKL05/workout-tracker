@@ -59,23 +59,32 @@ enum ExerciseSearch {
     }
 
     /// Common gym shorthand → expanded forms that should appear in some field.
+    ///
+    /// Movement abbreviations expand to whole *phrases* (e.g. "rdl" →
+    /// "romanian deadlift") rather than loose individual words, so that
+    /// typing "rdl" surfaces Romanian deadlifts specifically instead of
+    /// every deadlift or hamstring exercise in the library. The raw token is
+    /// always included too, so an exercise literally named "… RDL" still
+    /// matches.
     private static let abbreviationTable: [String: [String]] = [
         // Equipment
         "db":  ["dumbbell"],
         "dbs": ["dumbbell"],
         "bb":  ["barbell"],
         "kb":  ["kettlebell"],
-        "ez":  ["barbell", "curl"],
-        "smith": ["barbell", "machine"],
+        "ez":  ["ez bar", "curl"],
+        "smith": ["smith", "machine"],
 
-        // Movements
-        "ohp": ["overhead", "press", "shoulder"],
-        "rdl": ["romanian", "deadlift", "hamstring"],
-        "sldl": ["stiff", "leg", "deadlift", "hamstring"],
-        "bor": ["bent", "over", "row", "back"],
-        "pulldown": ["pull", "down", "back", "lat"],
-        "pullup": ["pull", "up", "back"],
-        "chinup": ["chin", "up", "back", "biceps"],
+        // Movements (phrase-based to keep results tight)
+        "ohp": ["overhead press", "shoulder press"],
+        "rdl": ["romanian deadlift"],
+        "sldl": ["stiff leg deadlift"],
+        "bor": ["bent over row"],
+        "pulldown": ["pull down", "pulldown", "lat"],
+        "pullup": ["pull up", "pullup"],
+        "chinup": ["chin up", "chinup"],
+        "gm":  ["good morning"],
+        "bp":  ["bench press"],
         "dl":  ["deadlift"],
 
         // Cardio zones

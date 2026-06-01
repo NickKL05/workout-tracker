@@ -50,51 +50,49 @@ struct SetEntryView: View {
         HStack(spacing: 6) {
             if type.tracksWeight {
                 numericField(label: "lbs", value: Binding(
-                    get: { Format.weight(set.weight) },
+                    get: { set.weight == 0 ? "" : Format.weight(set.weight) },
                     set: { set.weight = parseDouble($0) }
                 ), keyboard: .decimalPad, width: 64)
             }
             if type.tracksReps {
                 if isUnilateral {
-                    numericField(label: "L", value: Binding(
-                        get: { String(set.leftReps) },
-                        set: { set.leftReps = parseInt($0) }
-                    ), keyboard: .numberPad, width: 44)
-                    numericField(label: "R", value: Binding(
-                        get: { String(set.rightReps) },
-                        set: { set.rightReps = parseInt($0) }
-                    ), keyboard: .numberPad, width: 44)
+                    numericField(label: "L", value: intText(\.leftReps), keyboard: .numberPad, width: 44)
+                    numericField(label: "R", value: intText(\.rightReps), keyboard: .numberPad, width: 44)
                 } else {
-                    numericField(label: "reps", value: Binding(
-                        get: { String(set.reps) },
-                        set: { set.reps = parseInt($0) }
-                    ), keyboard: .numberPad, width: 56)
+                    numericField(label: "reps", value: intText(\.reps), keyboard: .numberPad, width: 56)
                 }
             }
             if type == .weightTime {
-                numericField(label: "sec", value: Binding(
-                    get: { String(set.durationSeconds) },
-                    set: { set.durationSeconds = parseInt($0) }
-                ), keyboard: .numberPad, width: 60)
+                numericField(label: "sec", value: intText(\.durationSeconds), keyboard: .numberPad, width: 60)
             }
             if type == .cardio {
                 numericField(label: "min", value: Binding(
-                    get: { String(set.durationSeconds / 60) },
+                    get: { set.durationSeconds == 0 ? "" : String(set.durationSeconds / 60) },
                     set: { set.durationSeconds = parseInt($0) * 60 }
                 ), keyboard: .numberPad, width: 60)
             }
             if type.tracksIntensity {
                 numericField(label: "int", value: Binding(
-                    get: { String(set.intensity) },
+                    get: { set.intensity == 0 ? "" : String(set.intensity) },
                     set: { set.intensity = min(10, max(0, parseInt($0))) }
                 ), keyboard: .numberPad, width: 44)
             }
         }
     }
 
+    /// String binding over an Int field on the set that shows an empty
+    /// placeholder (rather than "0") when the value is zero, so the field
+    /// is easy to tap into and type a fresh number.
+    private func intText(_ keyPath: ReferenceWritableKeyPath<SetLog, Int>) -> Binding<String> {
+        Binding(
+            get: { set[keyPath: keyPath] == 0 ? "" : String(set[keyPath: keyPath]) },
+            set: { set[keyPath: keyPath] = parseInt($0) }
+        )
+    }
+
     private func numericField(label: String, value: Binding<String>, keyboard: UIKeyboardType, width: CGFloat) -> some View {
         VStack(spacing: 2) {
-            TextField("", text: value)
+            TextField("0", text: value)
                 .keyboardType(keyboard)
                 .multilineTextAlignment(.center)
                 .font(.mono)

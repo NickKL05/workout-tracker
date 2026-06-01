@@ -16,6 +16,7 @@ enum Theme {
     static let accent           = Color.white
     static let accentOnAccent   = Color.black
     static let danger           = Color(white: 0.92)        // styled as outlined danger in components
+    static let destructive      = Color(red: 0.91, green: 0.30, blue: 0.27)  // custom-popup delete actions
 
     // Corner radii
     static let radiusSm: CGFloat = 8
