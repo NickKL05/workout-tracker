@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct WorkoutEditorView: View {
     @Environment(\.modelContext) private var context
@@ -14,6 +15,8 @@ struct WorkoutEditorView: View {
     @State private var rows: [EditableRow] = []
     @State private var showPicker = false
     @State private var showDeleteConfirm = false
+    /// Row currently being dragged for reorder, if any.
+    @State private var draggingRow: EditableRow?
 
     private var isNew: Bool { workout == nil }
 
@@ -70,9 +73,14 @@ struct WorkoutEditorView: View {
             }
             .preferredColorScheme(.dark)
         }
-        .confirmationDialog("Delete \(workout?.name ?? "workout")?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) { delete() }
-            Button("Cancel", role: .cancel) {}
+        .appConfirm(
+            isPresented: $showDeleteConfirm,
+            title: "Delete \(workout?.name ?? "workout")?",
+            message: "This workout will be removed. Your exercises and history stay.",
+            confirmTitle: "Delete",
+            destructive: true
+        ) {
+            delete()
         }
         .onAppear(perform: loadIfEditing)
     }
@@ -83,9 +91,13 @@ struct WorkoutEditorView: View {
             if rows.isEmpty {
                 emptyExercisesCard
             } else {
+                Text("Drag the handle to reorder.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textMuted)
+                    .padding(.horizontal, 4)
                 VStack(spacing: 10) {
-                    ForEach(rows.indices, id: \.self) { idx in
-                        exerciseRow(idx: idx)
+                    ForEach($rows) { $row in
+                        exerciseRow(row: $row)
                     }
                 }
                 addExerciseButton
@@ -134,63 +146,69 @@ struct WorkoutEditorView: View {
         .secondaryButton()
     }
 
-    private func exerciseRow(idx: Int) -> some View {
-        let row = rows[idx]
+    private func exerciseRow(row: Binding<EditableRow>) -> some View {
+        let value = row.wrappedValue
         return Card(padding: 12) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 12) {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.textMuted)
+                        .frame(width: 28, height: 32)
+                        .contentShape(Rectangle())
+                        .onDrag {
+                            draggingRow = value
+                            return NSItemProvider(object: value.id.uuidString as NSString)
+                        }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(row.exercise.name)
+                        Text(value.exercise.name)
                             .font(.bodyBold)
                             .foregroundStyle(Theme.textPrimary)
-                        Text(metaSubtitle(for: row.exercise))
+                        Text(metaSubtitle(for: value.exercise))
                             .font(.caption)
                             .foregroundStyle(Theme.textSecondary)
                     }
                     Spacer()
-                    HStack(spacing: 4) {
-                        Button { move(idx, by: -1) } label: { Image(systemName: "chevron.up") }
-                            .frame(width: 32, height: 32)
-                            .disabled(idx == 0)
-                        Button { move(idx, by: 1) } label: { Image(systemName: "chevron.down") }
-                            .frame(width: 32, height: 32)
-                            .disabled(idx == rows.count - 1)
-                        Button(role: .destructive) {
-                            rows.remove(at: idx)
-                        } label: { Image(systemName: "xmark") }
-                            .frame(width: 32, height: 32)
-                            .foregroundStyle(Theme.textSecondary)
-                    }
+                    Button(role: .destructive) {
+                        rows.removeAll { $0.id == value.id }
+                    } label: { Image(systemName: "xmark") }
+                        .frame(width: 32, height: 32)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 Divider().background(Theme.stroke)
-                goalEditors(for: idx)
+                goalEditors(row: row)
             }
         }
+        .opacity(draggingRow?.id == value.id ? 0.4 : 1)
+        .onDrop(
+            of: [UTType.text],
+            delegate: RowReorderDelegate(item: value, rows: $rows, dragging: $draggingRow)
+        )
     }
 
     @ViewBuilder
-    private func goalEditors(for idx: Int) -> some View {
-        let type = rows[idx].exercise.type
+    private func goalEditors(row: Binding<EditableRow>) -> some View {
+        let type = row.wrappedValue.exercise.type
         VStack(spacing: 10) {
             if type == .weightReps || type == .weightTime {
-                StepperRow(label: "Sets", value: $rows[idx].goalSets, range: 1...20)
+                StepperRow(label: "Sets", value: row.goalSets, range: 1...20)
             }
             if type == .weightReps {
-                StepperRow(label: "Reps", value: $rows[idx].goalReps, range: 1...100)
+                StepperRow(label: "Reps", value: row.goalReps, range: 1...100)
             }
             if type == .weightTime {
-                StepperRow(label: "Duration (sec)", value: $rows[idx].goalDurationSeconds, range: 5...7200, step: 5)
+                StepperRow(label: "Duration (sec)", value: row.goalDurationSeconds, range: 5...7200, step: 5)
             }
             if type == .cardio {
                 StepperRow(
                     label: "Duration (min)",
                     value: Binding(
-                        get: { rows[idx].goalDurationSeconds / 60 },
-                        set: { rows[idx].goalDurationSeconds = $0 * 60 }
+                        get: { row.wrappedValue.goalDurationSeconds / 60 },
+                        set: { row.wrappedValue.goalDurationSeconds = $0 * 60 }
                     ),
                     range: 1...180
                 )
-                StepperRow(label: "Intensity (1-10)", value: $rows[idx].goalIntensity, range: 1...10)
+                StepperRow(label: "Intensity (1-10)", value: row.goalIntensity, range: 1...10)
             }
         }
     }
@@ -199,12 +217,6 @@ struct WorkoutEditorView: View {
         var parts = [ex.equipment.displayName, ex.muscleGroup.displayName]
         if ex.isUnilateral { parts.append("L/R") }
         return parts.joined(separator: " • ")
-    }
-
-    private func move(_ idx: Int, by delta: Int) {
-        let new = idx + delta
-        guard new >= 0, new < rows.count else { return }
-        rows.swapAt(idx, new)
     }
 
     private func loadIfEditing() {
@@ -271,6 +283,34 @@ struct WorkoutEditorView: View {
     }
 }
 
+// MARK: - Drag-to-reorder
+
+/// Reorders `rows` as a dragged row hovers over another. Live-moves the
+/// dragged item into the hovered slot so the list animates under the finger.
+private struct RowReorderDelegate: DropDelegate {
+    let item: EditableRow
+    @Binding var rows: [EditableRow]
+    @Binding var dragging: EditableRow?
+
+    func dropEntered(info: DropInfo) {
+        guard let dragging, dragging.id != item.id,
+              let from = rows.firstIndex(where: { $0.id == dragging.id }),
+              let to = rows.firstIndex(where: { $0.id == item.id }) else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            rows.move(fromOffsets: IndexSet(integer: from), toOffset: to > from ? to + 1 : to)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        dragging = nil
+        return true
+    }
+}
+
 // MARK: - Editable row (transient pre-save state)
 
 struct EditableRow: Identifiable {
@@ -332,6 +372,8 @@ struct ExercisePickerView: View {
     @State private var picking: [UUID] = []
     @State private var showCreate = false
     @State private var collapsedGroups: Set<MuscleGroup> = []
+    /// Active body-part filter; nil = all muscle groups.
+    @State private var muscleFilter: MuscleGroup?
 
     /// Muscle groups inferred from keywords in the workout name.
     private var recommendedGroups: Set<MuscleGroup> {
@@ -349,8 +391,17 @@ struct ExercisePickerView: View {
 
     private var filteredExercises: [Exercise] {
         let q = search.trimmingCharacters(in: .whitespaces)
-        if q.isEmpty { return allExercises }
-        return allExercises.filter { ExerciseSearch.matches($0, query: q) }
+        return allExercises.filter { ex in
+            if let muscleFilter, ex.muscleGroup != muscleFilter { return false }
+            if q.isEmpty { return true }
+            return ExerciseSearch.matches(ex, query: q)
+        }
+    }
+
+    /// Muscle groups that actually have exercises, for the filter chips.
+    private var availableMuscleGroups: [MuscleGroup] {
+        let present = Set(allExercises.map(\.muscleGroup))
+        return MuscleGroup.displayOrder.filter { present.contains($0) }
     }
 
     private var groupedExercises: [(MuscleGroup, [Exercise])] {
@@ -374,8 +425,9 @@ struct ExercisePickerView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         searchBar
+                        muscleFilterBar
 
-                        if search.isEmpty && !recommendedExercises.isEmpty {
+                        if search.isEmpty && muscleFilter == nil && !recommendedExercises.isEmpty {
                             recommendedSection
                         }
 
@@ -426,6 +478,38 @@ struct ExercisePickerView: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.radiusSm, style: .continuous))
     }
 
+    private var muscleFilterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                filterChip(title: "All", isSelected: muscleFilter == nil) {
+                    muscleFilter = nil
+                }
+                ForEach(availableMuscleGroups) { group in
+                    filterChip(title: group.displayName, isSelected: muscleFilter == group) {
+                        muscleFilter = (muscleFilter == group) ? nil : group
+                    }
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+    }
+
+    private func filterChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(isSelected ? Theme.accentOnAccent : Theme.textSecondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(isSelected ? Theme.accent : Theme.surface)
+                .overlay(
+                    Capsule().stroke(isSelected ? .clear : Theme.stroke, lineWidth: 0.5)
+                )
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
     private var recommendedSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
@@ -446,7 +530,7 @@ struct ExercisePickerView: View {
 
     private var allExercisesSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if !recommendedExercises.isEmpty && search.isEmpty {
+            if !recommendedExercises.isEmpty && search.isEmpty && muscleFilter == nil {
                 Text("ALL EXERCISES")
                     .font(.caption)
                     .tracking(1.2)

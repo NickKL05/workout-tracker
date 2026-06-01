@@ -26,7 +26,7 @@ struct HelpView: View {
                         )
                         section(
                             title: "4. Start a session",
-                            body: "From Home, tap your next workout's play button. The timer starts. Tap any exercise to expand it, then tap each set's check to log it. The “Last time” section reminds you what you did before. Hit Finish when you're done."
+                            body: "From Home, tap your next workout's play button. The timer starts. Swipe sideways to move between exercises, type your weight and reps into each set, then tap its check to log it. Need something extra? Tap + to add an exercise just for this session. The “Last time” section reminds you what you did before. Hit Finish when you're done."
                         )
                         searchSection
                         overloadSection
@@ -135,7 +135,7 @@ struct HelpView: View {
                 .foregroundStyle(Theme.textMuted)
             Card {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Tap any exercise in your library, or expand one mid-session, and you'll see charts for how your top weight and best reps have moved over time. They need at least two finished sessions to render.")
+                    Text("Open any exercise in your library and you'll see charts for how your top weight and best reps have moved over time. They need at least two finished sessions to render.")
                         .font(.bodyMd)
                         .foregroundStyle(Theme.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)

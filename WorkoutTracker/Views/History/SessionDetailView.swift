@@ -28,13 +28,16 @@ struct SessionDetailView: View {
         }
         .navigationTitle(session.workoutName)
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("Delete session?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
-                context.delete(session)
-                try? context.save()
-                dismiss()
-            }
-            Button("Cancel", role: .cancel) {}
+        .appConfirm(
+            isPresented: $showDeleteConfirm,
+            title: "Delete session?",
+            message: "This logged session will be permanently removed.",
+            confirmTitle: "Delete",
+            destructive: true
+        ) {
+            context.delete(session)
+            try? context.save()
+            dismiss()
         }
     }
 

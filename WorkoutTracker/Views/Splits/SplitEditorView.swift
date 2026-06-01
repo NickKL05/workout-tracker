@@ -82,9 +82,14 @@ struct SplitEditorView: View {
             }
             .preferredColorScheme(.dark)
         }
-        .confirmationDialog("Delete \(split?.name ?? "split")?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) { delete() }
-            Button("Cancel", role: .cancel) {}
+        .appConfirm(
+            isPresented: $showDeleteConfirm,
+            title: "Delete \(split?.name ?? "split")?",
+            message: "The workouts in this split are kept; only the split is removed.",
+            confirmTitle: "Delete",
+            destructive: true
+        ) {
+            delete()
         }
         .onAppear(perform: loadIfEditing)
     }
