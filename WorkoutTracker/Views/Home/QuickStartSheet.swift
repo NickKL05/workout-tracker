@@ -17,7 +17,8 @@ struct QuickStartSheet: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        muscleSection
                         exercisesSection
                     }
                     .padding(.horizontal, 20)
@@ -43,6 +44,20 @@ struct QuickStartSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+
+    @ViewBuilder
+    private var muscleSection: some View {
+        let activation = MuscleActivation.forExercises(workout.orderedExercises)
+        if !activation.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Muscles worked")
+                Card {
+                    MuscleMapView(activation: activation, figureHeight: 180)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
     }
 
     private var exercisesSection: some View {

@@ -24,6 +24,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         header
                         quickStartSection
+                        weeklyMuscleSection
                         manageSection
                         if let lastSession = sessions.first {
                             recentSection(session: lastSession)
@@ -103,6 +104,20 @@ struct HomeView: View {
                 .overlay(Circle().stroke(Theme.stroke, lineWidth: 0.5))
         }
         .accessibilityLabel(label)
+    }
+
+    // MARK: - Weekly muscle map
+
+    private var weeklyMuscleSection: some View {
+        let since = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? .distantPast
+        let activation = MuscleActivation.forSessions(sessions, since: since)
+        return VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Trained this week")
+            Card {
+                MuscleMapView(activation: activation, figureHeight: 200)
+                    .frame(maxWidth: .infinity)
+            }
+        }
     }
 
     // MARK: - Quick start

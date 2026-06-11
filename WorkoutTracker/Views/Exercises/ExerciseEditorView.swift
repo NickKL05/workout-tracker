@@ -38,6 +38,7 @@ struct ExerciseEditorView: View {
 
                     typeSection
                     categorySection
+                    muscleMapSection
                     goalsSection
                     overloadSection
 
@@ -146,6 +147,20 @@ struct ExerciseEditorView: View {
                         }
                         .tint(Theme.textPrimary)
                     }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var muscleMapSection: some View {
+        let activation = MuscleActivation.forMuscle(muscleGroup)
+        if !activation.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Muscles worked")
+                Card {
+                    MuscleMapView(activation: activation, showLegend: false, figureHeight: 170)
+                        .frame(maxWidth: .infinity)
                 }
             }
         }
