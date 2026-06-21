@@ -262,7 +262,16 @@ struct HomeView: View {
 
     private func otherWorkoutsList(exclude: Workout?) -> some View {
         let excludeID = exclude?.uuid
-        let others = workouts.filter { excludeID == nil || $0.uuid != excludeID }.prefix(4)
+        let counts = completionCounts
+        let others = workouts
+            .filter { excludeID == nil || $0.uuid != excludeID }
+            .sorted { a, b in
+                let ca = counts[a.uuid] ?? 0
+                let cb = counts[b.uuid] ?? 0
+                if ca != cb { return ca > cb }          // most-completed first
+                return a.createdAt > b.createdAt         // newest as tie-break
+            }
+            .prefix(4)
         return VStack(alignment: .leading, spacing: 10) {
             if exclude != nil && !others.isEmpty {
                 Text("OTHER WORKOUTS")
@@ -272,12 +281,23 @@ struct HomeView: View {
                     .padding(.top, 6)
             }
             ForEach(Array(others)) { workout in
-                workoutRow(workout)
+                workoutRow(workout, completions: counts[workout.uuid] ?? 0)
             }
         }
     }
 
-    private func workoutRow(_ workout: Workout) -> some View {
+    /// Number of finished sessions logged per workout, used to rank the
+    /// "other workouts" list by how often the user actually trains them.
+    private var completionCounts: [UUID: Int] {
+        var counts: [UUID: Int] = [:]
+        for session in sessions where session.isFinished {
+            guard let id = session.workout?.uuid else { continue }
+            counts[id, default: 0] += 1
+        }
+        return counts
+    }
+
+    private func workoutRow(_ workout: Workout, completions: Int) -> some View {
         Button { quickStartTarget = workout } label: {
             Card {
                 HStack(spacing: 14) {
@@ -285,9 +305,16 @@ struct HomeView: View {
                         Text(workout.name)
                             .font(.title)
                             .foregroundStyle(Theme.textPrimary)
-                        Text("\(workout.orderedExercises.count) exercise\(workout.orderedExercises.count == 1 ? "" : "s")")
-                            .font(.bodyMd)
-                            .foregroundStyle(Theme.textSecondary)
+                        HStack(spacing: 6) {
+                            Text("\(workout.orderedExercises.count) exercise\(workout.orderedExercises.count == 1 ? "" : "s")")
+                                .font(.bodyMd)
+                                .foregroundStyle(Theme.textSecondary)
+                            if completions > 0 {
+                                Text("• done \(completions)×")
+                                    .font(.bodyMd)
+                                    .foregroundStyle(Theme.textMuted)
+                            }
+                        }
                     }
                     Spacer()
                     Image(systemName: "play.fill")

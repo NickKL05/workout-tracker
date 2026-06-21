@@ -64,21 +64,24 @@ struct BodyFigure: View {
 
             // Body silhouette underneath.
             let body = Self.silhouette(r)
-            ctx.fill(body, with: .color(Color(white: 0.10)))
+            ctx.fill(body, with: .color(Color(white: 0.13)))
 
-            // Muscle regions, tinted by activation.
+            // Muscle regions, tinted by activation, each with a faint edge so
+            // individual muscles stay legible even when dim.
             for region in Self.regions(for: side) {
                 let intensity = activation[region.group] ?? 0
-                ctx.fill(region.path(r), with: .color(Self.fillColor(intensity)))
+                let path = region.path(r)
+                ctx.fill(path, with: .color(Self.fillColor(intensity)))
+                ctx.stroke(path, with: .color(Color(white: 0.30)), lineWidth: 0.6)
             }
 
-            // Subtle outline so the figure reads on pure black.
-            ctx.stroke(body, with: .color(Color(white: 0.22)), lineWidth: 1)
+            // Silhouette outline so the figure reads on pure black.
+            ctx.stroke(body, with: .color(Color(white: 0.24)), lineWidth: 1)
         }
     }
 
     private static func fillColor(_ intensity: Double) -> Color {
-        if intensity <= 0 { return Color(white: 0.20) }
+        if intensity <= 0 { return Color(white: 0.22) }
         // Floor at 0.45 so any worked muscle is clearly lit, scaling to ~white.
         return Color(white: 0.45 + 0.5 * min(1, intensity))
     }
@@ -97,57 +100,155 @@ struct BodyFigure: View {
         }
     }
 
+    // Muscle outlines are described as normalized point clouds (fractions of
+    // the figure rect) and rendered as smooth closed curves. `pair` mirrors a
+    // left-side shape across the vertical centerline to make a symmetric pair.
+
     private static let frontRegions: [Region] = [
-        Region(group: .neck)      { bar(0.45, 0.135, 0.10, 0.05, $0) },
-        Region(group: .shoulders) { union(blob(0.305, 0.205, 0.072, 0.052, $0), blob(0.695, 0.205, 0.072, 0.052, $0)) },
-        Region(group: .chest)     { union(bar(0.355, 0.185, 0.135, 0.10, $0, 0.35), bar(0.510, 0.185, 0.135, 0.10, $0, 0.35)) },
-        Region(group: .biceps)    { union(bar(0.205, 0.225, 0.075, 0.14, $0), bar(0.720, 0.225, 0.075, 0.14, $0)) },
-        Region(group: .forearms)  { union(bar(0.180, 0.370, 0.070, 0.15, $0), bar(0.750, 0.370, 0.070, 0.15, $0)) },
-        Region(group: .core)      { bar(0.40, 0.30, 0.20, 0.155, $0, 0.25) },
-        Region(group: .quads)     { union(bar(0.360, 0.515, 0.105, 0.215, $0, 0.4), bar(0.535, 0.515, 0.105, 0.215, $0, 0.4)) },
+        Region(group: .neck)      { shape(neckFront, $0) },
+        Region(group: .shoulders) { pair(deltoid, $0) },
+        Region(group: .chest)     { pair(pec, $0) },
+        Region(group: .biceps)    { pair(upperArm, $0) },
+        Region(group: .forearms)  { pair(forearm, $0) },
+        Region(group: .core)      { shape(abs, $0) },
+        Region(group: .quads)     { pair(quad, $0) },
     ]
 
     private static let backRegions: [Region] = [
-        Region(group: .neck)      { bar(0.45, 0.135, 0.10, 0.05, $0) },
-        Region(group: .shoulders) { union(blob(0.305, 0.205, 0.072, 0.052, $0), blob(0.695, 0.205, 0.072, 0.052, $0)) },
-        Region(group: .back)      { union(bar(0.35, 0.175, 0.30, 0.115, $0, 0.3), bar(0.36, 0.285, 0.28, 0.12, $0, 0.3)) },
-        Region(group: .triceps)   { union(bar(0.205, 0.225, 0.075, 0.14, $0), bar(0.720, 0.225, 0.075, 0.14, $0)) },
-        Region(group: .forearms)  { union(bar(0.180, 0.370, 0.070, 0.15, $0), bar(0.750, 0.370, 0.070, 0.15, $0)) },
-        Region(group: .glutes)    { union(blob(0.425, 0.515, 0.080, 0.060, $0), blob(0.575, 0.515, 0.080, 0.060, $0)) },
-        Region(group: .hamstrings){ union(bar(0.360, 0.570, 0.105, 0.16, $0, 0.4), bar(0.535, 0.570, 0.105, 0.16, $0, 0.4)) },
-        Region(group: .calves)    { union(bar(0.370, 0.760, 0.090, 0.16, $0, 0.45), bar(0.545, 0.760, 0.090, 0.16, $0, 0.45)) },
+        Region(group: .neck)      { shape(neckBack, $0) },
+        Region(group: .shoulders) { pair(deltoid, $0) },
+        Region(group: .back)      { backComplex($0) },
+        Region(group: .triceps)   { pair(upperArm, $0) },
+        Region(group: .forearms)  { pair(forearm, $0) },
+        Region(group: .glutes)    { pair(glute, $0) },
+        Region(group: .hamstrings){ pair(hamstring, $0) },
+        Region(group: .calves)    { pair(calf, $0) },
     ]
+
+    // MARK: Muscle point clouds (left side; x < 0.5)
+
+    private static let deltoid: [CGPoint] = [
+        p(0.30, 0.155), p(0.355, 0.175), p(0.365, 0.235),
+        p(0.315, 0.255), p(0.272, 0.215), p(0.282, 0.172),
+    ]
+    private static let pec: [CGPoint] = [
+        p(0.495, 0.182), p(0.385, 0.198), p(0.368, 0.248),
+        p(0.425, 0.288), p(0.495, 0.282),
+    ]
+    private static let upperArm: [CGPoint] = [   // biceps (front) / triceps (back)
+        p(0.302, 0.215), p(0.345, 0.225), p(0.332, 0.350),
+        p(0.286, 0.365), p(0.262, 0.300), p(0.272, 0.232),
+    ]
+    private static let forearm: [CGPoint] = [
+        p(0.272, 0.378), p(0.312, 0.388), p(0.258, 0.512),
+        p(0.205, 0.518), p(0.222, 0.430),
+    ]
+    private static let abs: [CGPoint] = [
+        p(0.435, 0.288), p(0.565, 0.288), p(0.560, 0.395),
+        p(0.50, 0.455), p(0.440, 0.395),
+    ]
+    private static let quad: [CGPoint] = [
+        p(0.362, 0.520), p(0.452, 0.532), p(0.456, 0.660),
+        p(0.408, 0.712), p(0.360, 0.700), p(0.346, 0.585),
+    ]
+    private static let glute: [CGPoint] = [
+        p(0.498, 0.498), p(0.498, 0.582), p(0.428, 0.592),
+        p(0.388, 0.548), p(0.418, 0.500),
+    ]
+    private static let hamstring: [CGPoint] = [
+        p(0.360, 0.600), p(0.456, 0.600), p(0.450, 0.700),
+        p(0.402, 0.716), p(0.356, 0.662),
+    ]
+    private static let calf: [CGPoint] = [
+        p(0.366, 0.748), p(0.452, 0.748), p(0.456, 0.852),
+        p(0.412, 0.902), p(0.366, 0.852), p(0.356, 0.788),
+    ]
+    private static let neckFront: [CGPoint] = [
+        p(0.458, 0.120), p(0.542, 0.120), p(0.552, 0.158), p(0.448, 0.158),
+    ]
+    private static let neckBack: [CGPoint] = [
+        p(0.50, 0.118), p(0.575, 0.158), p(0.50, 0.205), p(0.425, 0.158),
+    ]
+
+    // Back complex: upper traps diamond + the two lats tapering to the waist.
+    private static func backComplex(_ r: CGRect) -> Path {
+        let traps: [CGPoint] = [p(0.50, 0.158), p(0.60, 0.215), p(0.50, 0.262), p(0.40, 0.215)]
+        let lat: [CGPoint] = [p(0.40, 0.232), p(0.478, 0.250), p(0.478, 0.380), p(0.412, 0.408), p(0.362, 0.300)]
+        return union(shape(traps, r), pair(lat, r))
+    }
 
     // MARK: Silhouette
 
     private static func silhouette(_ r: CGRect) -> Path {
         var p = Path()
-        p.addPath(blob(0.50, 0.075, 0.082, 0.072, r))      // head
-        p.addPath(bar(0.45, 0.13, 0.10, 0.06, r, 0.5))     // neck
-        p.addPath(bar(0.33, 0.165, 0.34, 0.33, r, 0.28))   // torso
-        p.addPath(bar(0.35, 0.45, 0.30, 0.10, r, 0.4))     // hips
-        p.addPath(bar(0.20, 0.19, 0.095, 0.34, r, 0.5))    // left arm
-        p.addPath(bar(0.705, 0.19, 0.095, 0.34, r, 0.5))   // right arm
-        p.addPath(bar(0.355, 0.50, 0.12, 0.47, r, 0.4))    // left leg
-        p.addPath(bar(0.525, 0.50, 0.12, 0.47, r, 0.4))    // right leg
+        // Head.
+        p.addPath(Path(ellipseIn: CGRect(
+            x: r.minX + 0.418 * r.width, y: r.minY + 0.005 * r.height,
+            width: 0.164 * r.width, height: 0.105 * r.height
+        )))
+        p.addPath(shape(torso, r))
+        p.addPath(pair(arm, r))
+        p.addPath(pair(leg, r))
         return p
     }
 
-    // MARK: Normalized primitives (coords are fractions of the figure rect)
+    private static let torso: [CGPoint] = [
+        p(0.428, 0.118), p(0.335, 0.158), p(0.358, 0.262),
+        p(0.388, 0.400), p(0.358, 0.500), p(0.468, 0.540),
+        p(0.532, 0.540), p(0.642, 0.500), p(0.612, 0.400),
+        p(0.665, 0.262), p(0.572, 0.158),
+    ]
+    private static let arm: [CGPoint] = [
+        p(0.298, 0.165), p(0.345, 0.200), p(0.300, 0.380),
+        p(0.222, 0.530), p(0.165, 0.560), p(0.182, 0.520),
+        p(0.255, 0.378),
+    ]
+    private static let leg: [CGPoint] = [
+        p(0.358, 0.500), p(0.342, 0.680), p(0.356, 0.730),
+        p(0.360, 0.840), p(0.398, 0.960), p(0.452, 0.958),
+        p(0.456, 0.840), p(0.456, 0.730), p(0.476, 0.600),
+        p(0.486, 0.520),
+    ]
 
-    private static func blob(_ cx: CGFloat, _ cy: CGFloat, _ rx: CGFloat, _ ry: CGFloat, _ r: CGRect) -> Path {
-        Path(ellipseIn: CGRect(
-            x: r.minX + (cx - rx) * r.width,
-            y: r.minY + (cy - ry) * r.height,
-            width: 2 * rx * r.width,
-            height: 2 * ry * r.height
-        ))
+    // MARK: Path builders
+
+    private static func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: x, y: y) }
+
+    private static func mirror(_ pts: [CGPoint]) -> [CGPoint] {
+        pts.map { CGPoint(x: 1 - $0.x, y: $0.y) }
     }
 
-    private static func bar(_ x: CGFloat, _ y: CGFloat, _ w: CGFloat, _ h: CGFloat, _ r: CGRect, _ corner: CGFloat = 0.5) -> Path {
-        let rect = CGRect(x: r.minX + x * r.width, y: r.minY + y * r.height, width: w * r.width, height: h * r.height)
-        let radius = min(rect.width, rect.height) * corner
-        return Path(roundedRect: rect, cornerRadius: radius)
+    /// Smooth closed curve through normalized points using a Catmull-Rom
+    /// spline, which renders organic muscle shapes instead of hard polygons.
+    private static func shape(_ norm: [CGPoint], _ r: CGRect) -> Path {
+        let pts = norm.map { CGPoint(x: r.minX + $0.x * r.width, y: r.minY + $0.y * r.height) }
+        var path = Path()
+        let n = pts.count
+        guard n >= 3 else {
+            if let first = pts.first {
+                path.move(to: first)
+                pts.dropFirst().forEach { path.addLine(to: $0) }
+                path.closeSubpath()
+            }
+            return path
+        }
+        path.move(to: pts[0])
+        for i in 0..<n {
+            let p0 = pts[(i - 1 + n) % n]
+            let p1 = pts[i]
+            let p2 = pts[(i + 1) % n]
+            let p3 = pts[(i + 2) % n]
+            let c1 = CGPoint(x: p1.x + (p2.x - p0.x) / 6.0, y: p1.y + (p2.y - p0.y) / 6.0)
+            let c2 = CGPoint(x: p2.x - (p3.x - p1.x) / 6.0, y: p2.y - (p3.y - p1.y) / 6.0)
+            path.addCurve(to: p2, control1: c1, control2: c2)
+        }
+        path.closeSubpath()
+        return path
+    }
+
+    /// A left-side shape plus its mirror image, for symmetric muscle pairs.
+    private static func pair(_ norm: [CGPoint], _ r: CGRect) -> Path {
+        union(shape(norm, r), shape(mirror(norm), r))
     }
 
     private static func union(_ paths: Path...) -> Path {
