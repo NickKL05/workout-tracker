@@ -16,6 +16,9 @@ Package.resolved
 # CocoaPods
 Pods/
 
+# Separate project that lives alongside this repo — never track it here
+pgfleet/
+
 # macOS
 .DS_Store
 
