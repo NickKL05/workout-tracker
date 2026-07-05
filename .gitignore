@@ -22,6 +22,10 @@ pgfleet/
 # macOS
 .DS_Store
 
+# Python (muscle-map conversion tooling)
+__pycache__/
+scripts/_bh/
+
 # Editor
 .vscode/
 .idea/
